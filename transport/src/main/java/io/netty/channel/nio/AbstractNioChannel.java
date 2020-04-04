@@ -49,10 +49,20 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
     private static final InternalLogger logger =
             InternalLoggerFactory.getInstance(AbstractNioChannel.class);
-
+    /**
+     * JDK规范中ServerSocketChannel和SocketChannel的父类 ,此处直接组合这两个类型的父类,完成与JDK规范整合.
+     */
     private final SelectableChannel ch;
+    /**
+     * JDK: {@link SelectionKey}中的OP_READ
+     */
     protected final int readInterestOp;
+    /**
+     * volatile修饰
+     * 由于Channel会面临多个业务线程的并发写操作，当SelectionKey由SelectionKey修改后，让其它线程感知到变化。
+     */
     volatile SelectionKey selectionKey;
+
     boolean readPending;
     private final Runnable clearReadPendingRunnable = new Runnable() {
         @Override
@@ -64,14 +74,21 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     /**
      * The future of the current connection attempt.  If not null, subsequent
      * connection attempts will fail.
+     * 连接结果：异步的
      */
     private ChannelPromise connectPromise;
+    /**
+     * 连接超时Schedule重连
+     */
     private ScheduledFuture<?> connectTimeoutFuture;
+    /**
+     * 请求通信地址信息
+     */
     private SocketAddress requestedRemoteAddress;
 
     /**
      * Create a new instance
-     *
+     * 创建一个新的Channel
      * @param parent            the parent {@link Channel} by which this instance was created. May be {@code null}
      * @param ch                the underlying {@link SelectableChannel} on which it operates
      * @param readInterestOp    the ops to set to receive data from the {@link SelectableChannel}
@@ -374,12 +391,18 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         return loop instanceof NioEventLoop;
     }
 
+    /**
+     * 通过NioEventLoop实现将Channel注册到Selector(JDk)中
+     * @throws Exception
+     */
     @Override
     protected void doRegister() throws Exception {
+        // 注册完成标识:刚开始默认false,注册完成后修改为true
         boolean selected = false;
         for (;;) {
             try {
-                selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
+                selectionKey = javaChannel() // 获取JDK中的SelectableChannel
+                        .register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
                 if (!selected) {

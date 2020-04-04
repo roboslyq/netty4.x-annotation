@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * {@link SingleThreadEventLoop} implementation which register the {@link Channel}'s to a
  * {@link Selector} and so does the multi-plexing of these in the event loop.
+ * 将Channel注册到一个Selector中，从而实现多路复用。
  *
  */
 public final class NioEventLoop extends SingleThreadEventLoop {
@@ -746,10 +747,19 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 返回JDK中的Selector，实现Netty与Java NIO集成
+     * @return
+     */
     Selector unwrappedSelector() {
         return unwrappedSelector;
     }
 
+    /**
+     * 注册成功之后，开始select监听
+     * @return
+     * @throws IOException
+     */
     int selectNow() throws IOException {
         try {
             return selector.selectNow();

@@ -38,21 +38,44 @@ import java.util.concurrent.RejectedExecutionException;
 
 /**
  * A skeletal {@link Channel} implementation.
+ * Channel的基础(骨架)实现
  */
 public abstract class AbstractChannel extends DefaultAttributeMap implements Channel {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannel.class);
-
+    /**
+     * 父Channel，表明Channel可以构成父子关系
+     */
     private final Channel parent;
+    /**
+     * 默认的全局唯一ID
+     */
     private final ChannelId id;
+    /**
+     * Unsafe实例<Channel接口辅助接口>，Netty自己封装了一些认为觉得不安全的操作。此Unsafe不是JDK中的UNsafe。
+     */
     private final Unsafe unsafe;
+    /**
+     * 当前Channel对应的Pipeline
+     */
     private final DefaultChannelPipeline pipeline;
     private final VoidChannelPromise unsafeVoidPromise = new VoidChannelPromise(this, false);
     private final CloseFuture closeFuture = new CloseFuture(this);
-
+    /**
+     * 本地监听地址
+     */
     private volatile SocketAddress localAddress;
+    /**
+     * 远程机器 <客户端/服务端>地址
+     */
     private volatile SocketAddress remoteAddress;
+    /**
+     * 当前Channel注册的事件处理线程池
+     */
     private volatile EventLoop eventLoop;
+    /**
+     *
+     */
     private volatile boolean registered;
     private boolean closeInitiated;
     private Throwable initialCloseCause;
@@ -448,6 +471,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             return remoteAddress0();
         }
 
+        /**
+         * 注册 Channel
+         * @param eventLoop
+         * @param promise
+         */
         @Override
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
             if (eventLoop == null) {
@@ -464,11 +492,13 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             AbstractChannel.this.eventLoop = eventLoop;
-
+            //正常情况为true
             if (eventLoop.inEventLoop()) {
+                //注册核心方法
                 register0(promise);
             } else {
                 try {
+                    //
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -486,6 +516,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        /**
+         * 注册Channel
+         * @param promise
+         */
         private void register0(ChannelPromise promise) {
             try {
                 // check if the channel is still open as it could be closed in the mean time when the register
@@ -494,6 +528,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
+                //注册
                 doRegister();
                 neverRegistered = false;
                 registered = true;
@@ -525,6 +560,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        /**
+         * 绑定端口
+         * @param localAddress
+         * @param promise
+         */
         @Override
         public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
             assertEventLoop();
@@ -548,6 +588,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             boolean wasActive = isActive();
             try {
+                //具体绑定实现
                 doBind(localAddress);
             } catch (Throwable t) {
                 safeSetFailure(promise, t);

@@ -92,6 +92,8 @@ import java.util.concurrent.TimeUnit;
  * ...
  * </pre>
  *
+ * 心跳机制的实现
+ *
  * @see ReadTimeoutHandler
  * @see WriteTimeoutHandler
  */

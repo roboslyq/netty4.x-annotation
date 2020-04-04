@@ -183,6 +183,13 @@ public class LoggingHandler extends ChannelDuplexHandler {
         ctx.fireUserEventTriggered(evt);
     }
 
+    /**
+     * 进行端口绑定
+     * @param ctx
+     * @param localAddress
+     * @param promise
+     * @throws Exception
+     */
     @Override
     public void bind(ChannelHandlerContext ctx, SocketAddress localAddress, ChannelPromise promise) throws Exception {
         if (logger.isEnabled(internalLevel)) {

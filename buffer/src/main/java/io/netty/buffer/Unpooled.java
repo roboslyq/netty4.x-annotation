@@ -28,7 +28,11 @@ import java.util.Arrays;
 /**
  * Creates a new {@link ByteBuf} by allocating new space or by wrapping
  * or copying existing byte arrays, byte buffers and a string.
- *
+ * {@link ByteBuf}的构造器，无对象池化技术优化。
+ *      对象池技术基本原理的核心有两点：
+ *          缓存和共享，即对于那些被频繁使用的对象，在使用完后，不立即将它们释放，而是将它们缓存起来，以供后续的应用程序重复使用，
+ *          从而减少创建对象和释放对象的次数，进而改善应用程序的性能。
+ *          事实上，由于对象池技术将对象限制在一定的数量，也有效地减少了应用程序内存上的开销。
  * <h3>Use static import</h3>
  * This classes is intended to be used with Java 5 static import statement:
  *

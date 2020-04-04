@@ -472,6 +472,12 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return deregister(newPromise());
     }
 
+    /**
+     * 绑定监听端口
+     * @param localAddress
+     * @param promise
+     * @return
+     */
     @Override
     public ChannelFuture bind(final SocketAddress localAddress, final ChannelPromise promise) {
         if (localAddress == null) {
@@ -484,7 +490,9 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
         final AbstractChannelHandlerContext next = findContextOutbound(MASK_BIND);
         EventExecutor executor = next.executor();
+        //如果是EventLoop(默认是NioEventLoop，所以此处为true)
         if (executor.inEventLoop()) {
+            //直接调用
             next.invokeBind(localAddress, promise);
         } else {
             safeExecute(executor, new Runnable() {
@@ -497,8 +505,13 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return promise;
     }
 
+    /**
+     * 运行绑定
+     * @param localAddress
+     * @param promise
+     */
     private void invokeBind(SocketAddress localAddress, ChannelPromise promise) {
-        if (invokeHandler()) {
+        if (invokeHandler()) { //默认为true
             try {
                 ((ChannelOutboundHandler) handler()).bind(this, localAddress, promise);
             } catch (Throwable t) {

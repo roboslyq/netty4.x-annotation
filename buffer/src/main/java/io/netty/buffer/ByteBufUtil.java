@@ -50,6 +50,7 @@ import static io.netty.util.internal.StringUtil.isSurrogate;
 /**
  * A collection of utility methods that is related with handling {@link ByteBuf},
  * such as the generation of hex dump and swapping an integer's byte order.
+ * ByteBuf的工具类
  */
 public final class ByteBufUtil {
 

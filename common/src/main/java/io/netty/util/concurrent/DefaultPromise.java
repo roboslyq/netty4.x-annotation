@@ -200,6 +200,11 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return this;
     }
 
+    /**
+     * Channel 启动之后，同步阻塞。
+     * @return
+     * @throws InterruptedException
+     */
     @Override
     public Promise<V> await() throws InterruptedException {
         if (isDone()) {
@@ -216,6 +221,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             while (!isDone()) {
                 incWaiters();
                 try {
+                    //在此阻塞，不退出
                     wait();
                 } finally {
                     decWaiters();

@@ -205,6 +205,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *   <li>{@link #deregister(ChannelPromise)}</li>
      *   <li>{@link #voidPromise()}</li>
      * </ul>
+     *  不安全的方法,用户不能直接在用户代码中调用.这些方法调用必须实现了具体的Transport,并且是一个I/O线程
      */
     interface Unsafe {
 
@@ -229,6 +230,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
         /**
          * Register the {@link Channel} of the {@link ChannelPromise} and notify
          * the {@link ChannelFuture} once the registration was complete.
+         * 异步注册ChannelPromise中的Channel,并且通知ChannelFuture一旦注册完成。
          */
         void register(EventLoop eventLoop, ChannelPromise promise);
 

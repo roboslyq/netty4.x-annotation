@@ -19,6 +19,7 @@ import io.netty.util.ReferenceCounted;
 
 /**
  * A packet which is send or receive.
+ * ByteBuf辅助类
  */
 public interface ByteBufHolder extends ReferenceCounted {
 

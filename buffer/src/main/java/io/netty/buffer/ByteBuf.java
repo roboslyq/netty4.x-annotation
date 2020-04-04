@@ -31,7 +31,10 @@ import java.nio.charset.UnsupportedCharsetException;
 
 /**
  * A random and sequential accessible sequence of zero or more bytes (octets).
- * This interface provides an abstract view for one or more primitive byte
+ *  零字节或多字节（八位字节）的(随机或有序)存取序列。
+ *  ByteBuf通过readerIndex 和 writerIndex来控制读写顺序。顺序读写即用户不需要指定readerIndex/writerIndex参数值，由ByteBuf自己控制
+ *  随机读写只用户可以自己指定readerIndex/writerIndex进行读写操作。
+ * This interface provides an abstract view for one or more primitive<原始的> byte
  * arrays ({@code byte[]}) and {@linkplain ByteBuffer NIO buffers}.
  *
  * <h3>Creation of a buffer</h3>
@@ -39,7 +42,7 @@ import java.nio.charset.UnsupportedCharsetException;
  * It is recommended to create a new buffer using the helper methods in
  * {@link Unpooled} rather than calling an individual implementation's
  * constructor.
- *
+ * 应该通过{@link Unpooled}来创建ByteBuf实例，而不应该通过实现具体的构造函数。
  * <h3>Random Access Indexing</h3>
  *
  * Just like an ordinary primitive byte array, {@link ByteBuf} uses
@@ -249,6 +252,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
 
     /**
      * Returns the number of bytes (octets) this buffer can contain.
+     * 容量：当前Buffer允许存放最大byte数量
      */
     public abstract int capacity();
 
@@ -258,18 +262,22 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * than the current capacity, the buffer is appended with unspecified data whose length is
      * {@code (newCapacity - currentCapacity)}.
      *
+     * 调整容量
      * @throws IllegalArgumentException if the {@code newCapacity} is greater than {@link #maxCapacity()}
+     *
      */
     public abstract ByteBuf capacity(int newCapacity);
 
     /**
      * Returns the maximum allowed capacity of this buffer. This value provides an upper
      * bound on {@link #capacity()}.
+     * 最大容量
      */
     public abstract int maxCapacity();
 
     /**
      * Returns the {@link ByteBufAllocator} which created this buffer.
+     * 实例化
      */
     public abstract ByteBufAllocator alloc();
 
@@ -307,21 +315,25 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     /**
      * Returns {@code true} if and only if this buffer is backed by an
      * NIO direct buffer.
+     * 是不是DirectoryBuffer
      */
     public abstract boolean isDirect();
 
     /**
      * Returns {@code true} if and only if this buffer is read-only.
+     * 是否是只读
      */
     public abstract boolean isReadOnly();
 
     /**
      * Returns a read-only version of this buffer.
+     * 返回只读部分的ByteBuf
      */
     public abstract ByteBuf asReadOnly();
 
     /**
      * Returns the {@code readerIndex} of this buffer.
+     * 当前读索引(位置)
      */
     public abstract int readerIndex();
 
@@ -332,11 +344,13 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         if the specified {@code readerIndex} is
      *            less than {@code 0} or
      *            greater than {@code this.writerIndex}
+     *            设置当前读索引位置
      */
     public abstract ByteBuf readerIndex(int readerIndex);
 
     /**
      * Returns the {@code writerIndex} of this buffer.
+     * 当前写索引
      */
     public abstract int writerIndex();
 
@@ -347,6 +361,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         if the specified {@code writerIndex} is
      *            less than {@code this.readerIndex} or
      *            greater than {@code this.capacity}
+     *            设置当前写索引
      */
     public abstract ByteBuf writerIndex(int writerIndex);
 
@@ -400,24 +415,28 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         if the specified {@code writerIndex} is less than the specified
      *         {@code readerIndex} or if the specified {@code writerIndex} is
      *         greater than {@code this.capacity}
+     *         设置读写索引
      */
     public abstract ByteBuf setIndex(int readerIndex, int writerIndex);
 
     /**
      * Returns the number of readable bytes which is equal to
      * {@code (this.writerIndex - this.readerIndex)}.
+     * 可读的字节数
      */
     public abstract int readableBytes();
 
     /**
      * Returns the number of writable bytes which is equal to
      * {@code (this.capacity - this.writerIndex)}.
+     * 可写的字节数
      */
     public abstract int writableBytes();
 
     /**
      * Returns the maximum possible number of writable bytes, which is equal to
      * {@code (this.maxCapacity - this.writerIndex)}.
+     * 最大可写字节数
      */
     public abstract int maxWritableBytes();
 
@@ -2278,7 +2297,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *
      * @throws UnsupportedOperationException
      *         if this buffer cannot create a {@link ByteBuffer} that shares the content with itself
-     *
+     * 由于Java底层的NIO仅支持ByteBuffer，因此，netty需要将自己扩展的ByteBuf包装成NIO支持的ByteBuffer。
      * @see #nioBufferCount()
      * @see #nioBuffers()
      * @see #nioBuffers(int, int)
@@ -2292,7 +2311,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * This method does not modify {@code readerIndex} or {@code writerIndex} of this buffer.
      * Please note that the returned NIO buffer will not see the changes of this buffer if this buffer
      * is a dynamic buffer and it adjusted its capacity.
-     *
+     * 由于Java底层的NIO仅支持ByteBuffer，因此，netty需要将自己扩展的ByteBuf包装成NIO支持的ByteBuffer。
      * @throws UnsupportedOperationException
      *         if this buffer cannot create a {@link ByteBuffer} that shares the content with itself
      *
@@ -2303,7 +2322,9 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     public abstract ByteBuffer nioBuffer(int index, int length);
 
     /**
+     *
      * Internal use only: Exposes the internal NIO buffer.
+     * 由于Java底层的NIO仅支持ByteBuffer，因此，netty需要将自己扩展的ByteBuf包装成NIO支持的ByteBuffer。
      */
     public abstract ByteBuffer internalNioBuffer(int index, int length);
 
@@ -2318,7 +2339,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *
      * @throws UnsupportedOperationException
      *         if this buffer cannot create a {@link ByteBuffer} that shares the content with itself
-     *
+     * 由于Java底层的NIO仅支持ByteBuffer，因此，netty需要将自己扩展的ByteBuf包装成NIO支持的ByteBuffer。
      * @see #nioBufferCount()
      * @see #nioBuffer()
      * @see #nioBuffer(int, int)
@@ -2332,7 +2353,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * This method does not modify {@code readerIndex} or {@code writerIndex} of this buffer. Please note that the
      * returned NIO buffer will not see the changes of this buffer if this buffer is a dynamic
      * buffer and it adjusted its capacity.
-     *
+     * 由于Java底层的NIO仅支持ByteBuffer，因此，netty需要将自己扩展的ByteBuf包装成NIO支持的ByteBuffer。
      * @throws UnsupportedOperationException
      *         if this buffer cannot create a {@link ByteBuffer} that shares the content with itself
      *

@@ -75,14 +75,23 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
 
     @Override
     public EventLoop next() {
+        // super =  NioEventLoopGroup
+        // super.next() = NioEventLoop()
         return (EventLoop) super.next();
     }
 
     @Override
     protected abstract EventLoop newChild(Executor executor, Object... args) throws Exception;
 
+    /**
+     * 注册Channel到Selector上
+     * @param channel
+     * @return
+     */
     @Override
     public ChannelFuture register(Channel channel) {
+        // group.next() = NioEventLoop
+        // NioEvnetLoop.register()= SingleThreadEventLoop.register()
         return next().register(channel);
     }
 

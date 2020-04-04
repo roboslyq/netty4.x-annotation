@@ -23,6 +23,8 @@ import java.lang.reflect.Constructor;
 
 /**
  * A {@link ChannelFactory} that instantiates a new {@link Channel} by invoking its default constructor reflectively.
+ * 通过反射技术，调用Channel的默认无数构造函数，实现具体Channel的实例化。
+ * 在ServerBootstrap.channel(xxxSocketChannel.class)中被调用。
  */
 public class ReflectiveChannelFactory<T extends Channel> implements ChannelFactory<T> {
 

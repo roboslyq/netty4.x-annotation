@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * {@link Bootstrap} sub-class which allows easy bootstrap of {@link ServerChannel}
+ * 服务启动引导类 ，Bootstrap子类，方便引导启动 ServerChannel类。此类是服务端的。具体客户端见Bootstrap。
  *
  */
 public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerChannel> {
@@ -129,13 +130,26 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return this;
     }
 
+    /**
+     * 服务启动时配置channel
+     * @param channel
+     * @throws Exception
+     */
     @Override
     void init(Channel channel) throws Exception {
+        /* 即获取如下代码中的option()方法设置的对应参数：
+         * ServerBootstrap b = new ServerBootstrap();
+         *             b.group(bossGroup, workerGroup)
+         *              .channel(NioServerSocketChannel.class)
+         *              .option(ChannelOption.SO_BACKLOG, 100)
+         */
         final Map<ChannelOption<?>, Object> options = options0();
         synchronized (options) {
             setChannelOptions(channel, options, logger);
         }
-
+        /*
+         *TODO :
+         */
         final Map<AttributeKey<?>, Object> attrs = attrs0();
         synchronized (attrs) {
             for (Entry<AttributeKey<?>, Object> e: attrs.entrySet()) {
@@ -144,9 +158,12 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 channel.attr(key).set(e.getValue());
             }
         }
-
+        /*
+         * channel = NioServerSocketChannel： 初始化channelPipeline
+         * p = DefaultChannelPipeline
+         */
         ChannelPipeline p = channel.pipeline();
-
+        //设置相关属性
         final EventLoopGroup currentChildGroup = childGroup;
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions;
@@ -157,7 +174,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         synchronized (childAttrs) {
             currentChildAttrs = childAttrs.entrySet().toArray(newAttrArray(0));
         }
-
+        //构造channelPipeline链最后一个channelHandler，此链固定为：ServerBootstrapAcceptor。用户不用进行相关设置
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) throws Exception {

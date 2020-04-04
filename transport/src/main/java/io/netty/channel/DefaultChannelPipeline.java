@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 /**
  * The default {@link ChannelPipeline} implementation.  It is usually created
  * by a {@link Channel} implementation when the {@link Channel} is created.
+ * 默认的ChannelPipeline实现，在Channel的构造函数中，会实例化ChannelPipeline。
  */
 public class DefaultChannelPipeline implements ChannelPipeline {
 
@@ -116,6 +117,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return touch ? ReferenceCountUtil.touch(msg, next) : msg;
     }
 
+    /**
+     * 构建Channel上下文环境
+     * @param group
+     * @param name
+     * @param handler
+     * @return
+     */
     private AbstractChannelHandlerContext newContext(EventExecutorGroup group, String name, ChannelHandler handler) {
         return new DefaultChannelHandlerContext(this, childExecutor(group), name, handler);
     }
@@ -195,14 +203,24 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return addLast(null, name, handler);
     }
 
+    /**
+     *
+     * @param group    the {@link EventExecutorGroup} which will be used to execute the {@link ChannelHandler}
+     *                 methods
+     * @param name     the name of the handler to append
+     * @param handler  the handler to append
+     *
+     * @return
+     */
     @Override
     public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
+        // ChannelHandler的上下文环境
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
             checkMultiplicity(handler);
-
+            //构建上下文环境
             newCtx = newContext(group, filterName(name, handler), handler);
-
+            //添加ChannelHandler
             addLast0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
@@ -224,8 +242,19 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 添加Channel到Pipeline倒数第2位。最末尾的ChannelHandler是内置的，默认的，不能改变。
+     * 例如当前Piepeline如下：则prev = B ,tail = C
+     * A --> B -->C
+     * 添加一个新newCtx为D之后，元素如下：
+     * A --> B --->D  --->C
+     * 元素C始终保持在最末尾
+     * @param newCtx
+     */
     private void addLast0(AbstractChannelHandlerContext newCtx) {
+        //定义临时变量prev,将当前末端的ctx赋值给他
         AbstractChannelHandlerContext prev = tail.prev;
+        //新添加的变量追加到当前tail的末尾
         newCtx.prev = prev;
         newCtx.next = tail;
         prev.next = newCtx;
@@ -367,17 +396,28 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return addLast(null, handler);
     }
 
+    /**
+     * 在ChannelPipeLine最末尾添加新的ChannelHandler（不指定当前ChannelHandler的EventExecutorGroup）
+     * @param handlers  the handlers to insert last
+     * @return
+     */
     @Override
     public final ChannelPipeline addLast(ChannelHandler... handlers) {
         return addLast(null, handlers);
     }
 
+    /**
+     * 添加ChannelHandler并且指定EventExecutorGroup
+     * @param executor
+     * @param handlers  the handlers to insert last
+     * @return
+     */
     @Override
     public final ChannelPipeline addLast(EventExecutorGroup executor, ChannelHandler... handlers) {
         if (handlers == null) {
             throw new NullPointerException("handlers");
         }
-
+        //当入参有多个ChannelHandler时，循环添加
         for (ChannelHandler h: handlers) {
             if (h == null) {
                 break;
@@ -948,6 +988,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return tail.bind(localAddress);
     }
 
+    /**
+     * 连接事件处理
+     * @param remoteAddress
+     * @return
+     */
     @Override
     public final ChannelFuture connect(SocketAddress remoteAddress) {
         return tail.connect(remoteAddress);
@@ -979,6 +1024,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 服务端启动时，绑定监听端口。使用最末端的ChannelHandler（）
+     * @param localAddress
+     * @param promise
+     * @return
+     */
     @Override
     public final ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
         return tail.bind(localAddress, promise);
@@ -1326,6 +1377,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             // NOOP
         }
 
+        /**
+         * 绑定端口
+         * @param ctx           the {@link ChannelHandlerContext} for which the bind operation is made
+         * @param localAddress  the {@link SocketAddress} to which it should bound
+         * @param promise       the {@link ChannelPromise} to notify once the operation completes
+         */
         @Override
         public void bind(
                 ChannelHandlerContext ctx, SocketAddress localAddress, ChannelPromise promise) {

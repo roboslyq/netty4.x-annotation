@@ -38,6 +38,19 @@ public final class EchoServer {
     static final boolean SSL = System.getProperty("ssl") != null;
     static final int PORT = Integer.parseInt(System.getProperty("port", "8007"));
 
+    /**
+     * (1)、 初始化用于Acceptor的主"线程池"以及用于I/O工作的从"线程池"；
+     * (2)、 初始化ServerBootstrap实例， 此实例是netty服务端应用开发的入口；
+     * (3)、 通过ServerBootstrap的group方法，设置（1）中初始化的主从"线程池"；
+     * (4)、 指定通道channel的类型，由于是服务端，故而是NioServerSocketChannel；
+     * (5)、 设置ServerSocketChannel的处理器
+     * (6)、 设置子通道也就是SocketChannel的处理器， 其内部是实际业务开发的"主战场"
+     * (7)、 配置ServerSocketChannel的选项
+     * (8)、 配置子通道也就是SocketChannel的选项
+     * (9)、 绑定并侦听某个端口
+     * @param args
+     * @throws Exception
+     */
     public static void main(String[] args) throws Exception {
         // Configure SSL.
         final SslContext sslCtx;
@@ -49,7 +62,14 @@ public final class EchoServer {
         }
 
         // Configure the server.
+        /*
+            1、boss线程池的线程负责处理请求的accept事件，当接收到accept事件的请求时，把对应的socket封装到一个NioSocketChannel中，
+                并交给work线程池。
+            2、work线程池负责请求的read和write事件，由对应的Handler处理
+         */
+        //初始化用于Acceptor的主"线程池"
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        //初始化用于I/O工作的从"线程池"；
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         final EchoServerHandler serverHandler = new EchoServerHandler();
         try {
@@ -71,10 +91,12 @@ public final class EchoServer {
              });
 
             // Start the server.
+            // 核心流程：启动服务，监听端口，并同步阻塞
             ChannelFuture f = b.bind(PORT).sync();
 
             // Wait until the server socket is closed.
             f.channel().closeFuture().sync();
+
         } finally {
             // Shut down all event loops to terminate all threads.
             bossGroup.shutdownGracefully();
