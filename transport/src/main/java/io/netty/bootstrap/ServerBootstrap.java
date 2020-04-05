@@ -39,16 +39,24 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * {@link Bootstrap} sub-class which allows easy bootstrap of {@link ServerChannel}
- * 服务启动引导类 ，Bootstrap子类，方便引导启动 ServerChannel类。此类是服务端的。具体客户端见Bootstrap。
- *
+ * 1、服务端服务启动引导类 ，Bootstrap子类，方便引导启动 ServerChannel类。此类是服务端的。具体客户端见Bootstrap。
+ * 2、服务端有两种线程池，用于Acceptor的React主线程(一般命名为bossGroup)和用于I/O操作的React从线程池（一般命名为workGroup）；
+ *    客户端只有用于连接及IO操作的React的主线程池；
+ * 3、ServerBootstrap中定义了服务端React的"从线程池"对应的相关配置，都是以child开头的属性。
+ *    而用于"主线程池"channel的属性都定义在AbstractBootstrap中；
  */
 public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerChannel> {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(ServerBootstrap.class);
-
+    /**
+     * ServerBootStrap配置相关
+     */
+    private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
+    /**
+     * 从线程池(workerGroup)相关配置
+     */
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<ChannelOption<?>, Object>();
     private final Map<AttributeKey<?>, Object> childAttrs = new LinkedHashMap<AttributeKey<?>, Object>();
-    private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
     private volatile EventLoopGroup childGroup;
     private volatile ChannelHandler childHandler;
 
@@ -183,7 +191,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
-
+                //异步添加内置的连接处理Handler： ServerBootstrapAcceptor
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {

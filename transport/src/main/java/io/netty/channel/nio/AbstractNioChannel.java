@@ -401,6 +401,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (;;) {
             try {
+                //此处selectionKey为Channel的实例实例变量
                 selectionKey = javaChannel() // 获取JDK中的SelectableChannel
                         .register(eventLoop().unwrappedSelector(), 0, this);
                 return;
@@ -424,18 +425,27 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         eventLoop().cancel(selectionKey());
     }
 
+    /**
+     * 开始读
+     * @throws Exception
+     */
     @Override
     protected void doBeginRead() throws Exception {
         // Channel.read() or ChannelHandlerContext.read() was called
         final SelectionKey selectionKey = this.selectionKey;
+        // selectionKey不可用
         if (!selectionKey.isValid()) {
             return;
         }
 
         readPending = true;
-
+        // 调用 SelectionKey#interestOps(ops) 方法，将我们创建 NioServerSocketChannel 时，设置的 readInterestOp = SelectionKey.OP_ACCEPT 添加为感兴趣的事件。
+        // 也就说，服务端可以开始处理客户端的连接事件。
+        // 获取当前SelectionKey感兴趣事件
         final int interestOps = selectionKey.interestOps();
+        //如果是读事件
         if ((interestOps & readInterestOp) == 0) {
+            //设置为读事件
             selectionKey.interestOps(interestOps | readInterestOp);
         }
     }

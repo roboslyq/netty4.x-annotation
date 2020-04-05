@@ -28,6 +28,7 @@ import java.util.Map;
 
 /**
  * Exposes the configuration of an {@link AbstractBootstrap}.
+ * {@link AbstractBootstrap}的配置类。通过此类对{@link AbstractBootstrap}的行为进行修改。
  */
 public abstract class AbstractBootstrapConfig<B extends AbstractBootstrap<B, C>, C extends Channel> {
 
@@ -75,6 +76,7 @@ public abstract class AbstractBootstrapConfig<B extends AbstractBootstrap<B, C>,
 
     /**
      * Returns the configured {@link EventLoopGroup} or {@code null} if non is configured yet.
+     *
      */
     @SuppressWarnings("deprecation")
     public final EventLoopGroup group() {

@@ -32,6 +32,48 @@ import java.util.concurrent.ThreadFactory;
 
 /**
  * {@link MultithreadEventLoopGroup} implementations which is used for NIO {@link Selector} based {@link Channel}s.
+ * 0、前提
+ *  1): 常见的服务端线程模型有Reactor和Proactor两种，常用的是Reactor。
+ *
+ *  2)：以下的bossGroup和workerGroup是指示下例示例代码中的变量：
+ *         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+ *         EventLoopGroup workerGroup = new NioEventLoopGroup();
+ *         ServerBootstrap b = new ServerBootstrap();
+ *         b.group(bossGroup, workerGroup)
+ *      即bossGroup 和 workerGroup均是EventLoopGroup,即对应的Reactor角色。
+ *
+ * 1、Netty 基于事件驱动模型，使用不同的事件来通知状态的改变或者操作状态的改变。
+ * 2、Channel 为Netty 网络操作抽象类，EventLoop 负责处理注册到其上的 Channel 处理 I/O 操作，两者配合参与 I/O 操作。
+ * 3、在Reactor线程模型中，EventLoopGroup就是Reactor的角色。而EvnetLoop即线程，具体的干活的线程。由Reactor完成任务分配和调度。
+ *     (1)如果通过ServerBootstrap.group(bossGroup, workerGroup)方式进行初始化，表示Netty使用主从Reactor线程型。
+ *          bossGroup是Reactor主线程池，workerGroup是从Reactor线程池。
+ *          bossGroup作用：
+ *              1) ->接收客户端的连接，初始化Channel参数。
+ *              2) ->将链路状态变更时间通知给ChannelPipeline。
+ *          workerGroup作用:
+ *              1)异步读取通信对端的数据报，发送读事件到ChannelPipeline。
+ *              2)异步发送消息到通信对端，调用ChannelPipeline的消息发送接口。
+ *              3)执行系统调用Task。
+ *              4)执行定时任务Task。
+ *     (2)如果通过ServerBootstrap.group(group)方式进行初始化，表示Netty使用单线程池模型型。
+ *        此时IO连接，读，写等均由group线程池完成
+ *
+ * 4、EventLoopGroup 是一个 EventLoop 的分组，它可以获取到一个或者多个 EventLoop 对象，因此它提供了迭代出 EventLoop 对象的方法。
+ *      (1)一个 EventLoopGroup 包含一个或多个 EventLoop ，即 EventLoopGroup : EventLoop = 1 : n 。
+ *      (2)一个 EventLoop 在它的生命周期内，只能与一个 Thread 绑定，即 EventLoop : Thread = 1 : 1 。
+ *      (3)所有有 EventLoop 处理的 I/O 事件都将在它专有的 Thread 上被处理，从而保证线程安全，即 Thread : EventLoop = 1 : 1。
+ *      (4)一个 Channel 在它的生命周期内只能注册到一个 EventLoop 上，即 Channel : EventLoop = n : 1。
+ *      (5)一个 EventLoop 可被分配至一个或多个 Channel ，即 EventLoop : Channel = 1 : n 。
+ * 当一个连接到达时，Netty 就会创建一个 Channel，然后从 EventLoopGroup 中分配一个 EventLoop 来给这个 Channel 绑定上，
+ * 在该 Channel 的整个生命周期中都是有这个绑定的 EventLoop 来服务的。
+ *
+ * 5、通过配置boss和worker线程池的线程个数以及是否共享线程池等方式，Netty的线程模型可以在以下三种Reactor模型之间进行切换:
+ *      1)单Reactor单线程模型
+ *          1个bossGroup和1个EventLoop
+ *      2)单Reactor多线程模型
+ *          1个bossGroup和 N 个EventLoop
+ *      3)主从Reactor多线程模型
+ *          1个bossGroup + N个EventLoop 和 1个workerGroup + N个EventLoop
  */
 public class NioEventLoopGroup extends MultithreadEventLoopGroup {
 

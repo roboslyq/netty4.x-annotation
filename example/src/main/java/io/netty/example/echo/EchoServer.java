@@ -63,13 +63,13 @@ public final class EchoServer {
 
         // Configure the server.
         /*
-            1、boss线程池的线程负责处理请求的accept事件，当接收到accept事件的请求时，把对应的socket封装到一个NioSocketChannel中，
-                并交给work线程池。
-            2、work线程池负责请求的read和write事件，由对应的Handler处理
+         *   1、boss线程池的线程负责处理请求的accept事件，当接收到accept事件的请求时，把对应的socket封装到一个NioSocketChannel中，
+         *       并交给work线程池。
+         *   2、work线程池负责请求的read和write事件，由对应的Handler处理
          */
-        //初始化用于Acceptor的主"线程池"
+        //创建boss主线程池，用于服务端接受(Acceptor)客户端的连接
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-        //初始化用于I/O工作的从"线程池"；
+        //初始化用于SocketChannel的I/O读写工作的从"线程池"；
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         final EchoServerHandler serverHandler = new EchoServerHandler();
         try {

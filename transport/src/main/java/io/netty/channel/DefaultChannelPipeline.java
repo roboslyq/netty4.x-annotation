@@ -1032,6 +1032,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      */
     @Override
     public final ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
+        /*
+         * 1、tail = DefaultChannelPipeline$TailContext
+         * 2、tail没有重写bind(localAddress, promise)，因此调用的是父类AbstractChannelHandlerContext#bind(localAddress, promise)，
+         */
         return tail.bind(localAddress, promise);
     }
 
@@ -1291,6 +1295,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     // A special catch-all handler that handles both bytes and messages.
+    // 内置的特殊Handler: 处理bytes和Meesages。ChannelPipeline的入口Handler。因为ChannelPipeline从末尾开始往前找
     final class TailContext extends AbstractChannelHandlerContext implements ChannelInboundHandler {
 
         TailContext(DefaultChannelPipeline pipeline) {
@@ -1351,6 +1356,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 内置HeadContext
+     */
     final class HeadContext extends AbstractChannelHandlerContext
             implements ChannelOutboundHandler, ChannelInboundHandler {
 
@@ -1378,7 +1386,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
 
         /**
-         * 绑定端口
+         * 绑定端口最终入口，因为当前ChannelHandler为Head(最后一个Handler)
          * @param ctx           the {@link ChannelHandlerContext} for which the bind operation is made
          * @param localAddress  the {@link SocketAddress} to which it should bound
          * @param promise       the {@link ChannelPromise} to notify once the operation completes
@@ -1412,6 +1420,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             unsafe.deregister(promise);
         }
 
+        /**
+         * 开始读：实际上不是读事件，初始化时是将readInterestOp = SelectionKey.OP_ACCEPT 添加为感兴趣的事件。
+         * 也就说，服务端可以开始处理客户端的连接事件。
+         *
+         * @param ctx
+         */
         @Override
         public void read(ChannelHandlerContext ctx) {
             unsafe.beginRead();
@@ -1448,10 +1462,14 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             }
         }
 
+        /**
+         * channel激活事件
+         * @param ctx
+         */
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
             ctx.fireChannelActive();
-
+            //如果可读的话，进行读监听
             readIfIsAutoRead();
         }
 
@@ -1472,6 +1490,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             readIfIsAutoRead();
         }
 
+        /**
+         * 如果可读，进行Channel读
+         */
         private void readIfIsAutoRead() {
             if (channel.config().isAutoRead()) {
                 channel.read();

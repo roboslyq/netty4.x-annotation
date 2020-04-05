@@ -487,7 +487,14 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             // cancelled
             return promise;
         }
-
+        /*
+         * ChannelPipeline相关实现,调用流程如下：
+         *      DefaultChannelPipeline#TailConext<TailContext>
+         *          --> AbstractChannelHandlerContext<LoggingHandler>
+         *              -->DefaultChannelPipeline#HeadContext<HeadContext>
+         *                  -->Unsafe.bind(localAddress, promise)
+         *                      -->NioServerSocketChannel.doBind()
+         */
         final AbstractChannelHandlerContext next = findContextOutbound(MASK_BIND);
         EventExecutor executor = next.executor();
         //如果是EventLoop(默认是NioEventLoop，所以此处为true)
@@ -933,6 +940,11 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return ctx;
     }
 
+    /**
+     * 找到下一个ChannelHandler<Netty是从尾部往前找，因为是通过Pre指针来查找>
+     * @param mask
+     * @return
+     */
     private AbstractChannelHandlerContext findContextOutbound(int mask) {
         AbstractChannelHandlerContext ctx = this;
         do {

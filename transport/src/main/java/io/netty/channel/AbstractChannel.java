@@ -265,8 +265,65 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return this;
     }
 
+    /**
+     * 绑定监听端口
+     * -----------------------------------------------
+     * bind:212, ServerSocketChannelImpl (sun.nio.ch)
+     * doBind:138, NioServerSocketChannel (io.netty.channel.socket.nio)
+     * bind:598, AbstractChannel$AbstractUnsafe (io.netty.channel)
+     * bind:1390, DefaultChannelPipeline$HeadContext (io.netty.channel)
+     * invokeBind:521, AbstractChannelHandlerContext (io.netty.channel)
+     * bind:501, AbstractChannelHandlerContext (io.netty.channel)
+     * bind:198, LoggingHandler (io.netty.handler.logging)
+     * invokeBind:521, AbstractChannelHandlerContext (io.netty.channel)
+     * bind:501, AbstractChannelHandlerContext (io.netty.channel)
+     * bind:1036, DefaultChannelPipeline (io.netty.channel)
+     * bind:277, AbstractChannel (io.netty.channel)
+     * run:443, AbstractBootstrap$2 (io.netty.bootstrap)
+     * safeExecute$$$capture:163, AbstractEventExecutor (io.netty.util.concurrent)
+     * safeExecute:-1, AbstractEventExecutor (io.netty.util.concurrent)
+     * --------------------------------------------------------------------------
+     *  - Async stacktrace
+     * addTask:-1, SingleThreadEventExecutor (io.netty.util.concurrent)
+     * execute:755, SingleThreadEventExecutor (io.netty.util.concurrent)
+     * doBind0:438, AbstractBootstrap (io.netty.bootstrap)
+     * access$000:58, AbstractBootstrap (io.netty.bootstrap)
+     * operationComplete:359, AbstractBootstrap$1 (io.netty.bootstrap)
+     * operationComplete:343, AbstractBootstrap$1 (io.netty.bootstrap)
+     * notifyListener0:501, DefaultPromise (io.netty.util.concurrent)
+     * notifyListenersNow:475, DefaultPromise (io.netty.util.concurrent)
+     * notifyListeners:414, DefaultPromise (io.netty.util.concurrent)
+     * setValue0:539, DefaultPromise (io.netty.util.concurrent)
+     * setSuccess0:528, DefaultPromise (io.netty.util.concurrent)
+     * trySuccess:99, DefaultPromise (io.netty.util.concurrent)
+     * trySuccess:84, DefaultChannelPromise (io.netty.channel)
+     * safeSetSuccess:1029, AbstractChannel$AbstractUnsafe (io.netty.channel)
+     * register0:546, AbstractChannel$AbstractUnsafe (io.netty.channel)
+     * access$200:446, AbstractChannel$AbstractUnsafe (io.netty.channel)
+     * run:511, AbstractChannel$AbstractUnsafe$1 (io.netty.channel)
+     * safeExecute$$$capture:163, AbstractEventExecutor (io.netty.util.concurrent)
+     * safeExecute:-1, AbstractEventExecutor (io.netty.util.concurrent)
+     *
+     * --------------------------------------------------------------------------------
+     *  - Async stacktrace
+     * addTask:-1, SingleThreadEventExecutor (io.netty.util.concurrent)
+     * execute:755, SingleThreadEventExecutor (io.netty.util.concurrent)
+     * register:508, AbstractChannel$AbstractUnsafe (io.netty.channel)
+     * register:91, SingleThreadEventLoop (io.netty.channel)
+     * register:79, SingleThreadEventLoop (io.netty.channel)
+     * register:95, MultithreadEventLoopGroup (io.netty.channel)
+     * initAndRegister:392, AbstractBootstrap (io.netty.bootstrap)
+     * doBind:324, AbstractBootstrap (io.netty.bootstrap)
+     * bind:312, AbstractBootstrap (io.netty.bootstrap)
+     * bind:288, AbstractBootstrap (io.netty.bootstrap)
+     * main:95, EchoServer (io.netty.example.echo)
+     * @param localAddress
+     * @param promise
+     * @return
+     */
     @Override
     public ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
+        /* pipeline = DefaultChannelPipeline*/
         return pipeline.bind(localAddress, promise);
     }
 
@@ -295,6 +352,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return pipeline.deregister(promise);
     }
 
+    /**
+     * 又是一个Pipeline...最终支进入{@link DefaultChannelPipeline.HeadContext.read()}方法中
+     * @return
+     */
     @Override
     public Channel read() {
         pipeline.read();
@@ -444,6 +505,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         /** true if the channel has never been registered, false otherwise */
         private boolean neverRegistered = true;
 
+        /**
+         * 判断是否在 EventLoop 的线程中。
+         */
         private void assertEventLoop() {
             assert !registered || eventLoop.inEventLoop();
         }
@@ -492,13 +556,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             AbstractChannel.this.eventLoop = eventLoop;
-            //正常情况为true
+            //正常情况为false
             if (eventLoop.inEventLoop()) {
-                //注册核心方法
                 register0(promise);
             } else {
                 try {
-                    //
+                    //注册核心方法
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -528,7 +591,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
-                //注册
+                //注册: AbstractNioChannel
                 doRegister();
                 neverRegistered = false;
                 registered = true;
@@ -567,6 +630,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
          */
         @Override
         public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
+            // 判断是否在 EventLoop 的线程中。
             assertEventLoop();
 
             if (!promise.setUncancellable() || !ensureOpen(promise)) {
@@ -585,26 +649,30 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         "is not bound to a wildcard address; binding to a non-wildcard " +
                         "address (" + localAddress + ") anyway as requested.");
             }
-
+            // 记录 Channel 是否激活
+            // NioServerSocketChannel 的 #isActive() 的方法实现，判断 ServerSocketChannel 是否绑定端口。
+            // 此时，一般返回的是 false
             boolean wasActive = isActive();
             try {
-                //具体绑定实现
+                //绑定 Channel 的端口
                 doBind(localAddress);
             } catch (Throwable t) {
                 safeSetFailure(promise, t);
                 closeIfClosed();
                 return;
             }
-
+            // 若 Channel 是新激活的，触发通知 Channel 已激活的事件。
             if (!wasActive && isActive()) {
+                //调用 #invokeLater(Runnable task) 方法，提交任务==> channel的Active事件被触发
                 invokeLater(new Runnable() {
                     @Override
                     public void run() {
+                        // 触发 Channel 激活的事件===>核心方法<在HeadContext中会调用Unsafe#beginRead方法>
                         pipeline.fireChannelActive();
                     }
                 });
             }
-
+            // 回调通知 promise 执行成功
             safeSetSuccess(promise);
         }
 
@@ -870,15 +938,20 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             });
         }
 
+        /**
+         * 开始读
+         */
         @Override
         public final void beginRead() {
+            // 仅支持EventLoop线程组
             assertEventLoop();
-
+            // channel线程不是Active，直接返回
             if (!isActive()) {
                 return;
             }
 
             try {
+                //开始读
                 doBeginRead();
             } catch (final Exception e) {
                 invokeLater(new Runnable() {
