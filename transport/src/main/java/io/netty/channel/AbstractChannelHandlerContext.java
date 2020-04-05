@@ -368,6 +368,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
     }
 
+    /**
+     * 处理读事件
+     * @param msg
+     */
     private void invokeChannelRead(Object msg) {
         if (invokeHandler()) {
             try {

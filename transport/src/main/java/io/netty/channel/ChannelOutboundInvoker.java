@@ -21,6 +21,15 @@ import io.netty.util.concurrent.FutureListener;
 import java.net.ConnectException;
 import java.net.SocketAddress;
 
+/**
+ * I/O输出操作相关，具体的输入相关操作请见{@link ChannelInboundInvoker}
+ * 本类主要有以下几个功能
+ * 1、注册/取消注册 Channel
+ * 2、绑定/取消绑定 Channel
+ * 3、连接处理/取消连接
+ * 4、读数据处理
+ * 5、写数据处理
+ */
 public interface ChannelOutboundInvoker {
 
     /**
@@ -31,6 +40,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#bind(ChannelHandlerContext, SocketAddress, ChannelPromise)} method
      * called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 1、异步绑定监听端口，并且返回一个ChannelFuture。一旦绑定事件完成(成功或失败)，会向ChannelFuture发起通知。
      */
     ChannelFuture bind(SocketAddress localAddress);
 
@@ -46,6 +56,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#connect(ChannelHandlerContext, SocketAddress, SocketAddress, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 连接事件
      */
     ChannelFuture connect(SocketAddress remoteAddress);
 
@@ -58,6 +69,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#connect(ChannelHandlerContext, SocketAddress, SocketAddress, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 连接事件
      */
     ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress);
 
@@ -69,6 +81,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#disconnect(ChannelHandlerContext, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 断开事件
      */
     ChannelFuture disconnect();
 
@@ -83,6 +96,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#close(ChannelHandlerContext, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 关闭
      */
     ChannelFuture close();
 
@@ -95,7 +109,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#deregister(ChannelHandlerContext, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
-     *
+     * 取消注册
      */
     ChannelFuture deregister();
 
@@ -109,6 +123,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#bind(ChannelHandlerContext, SocketAddress, ChannelPromise)} method
      * called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 绑定
      */
     ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise);
 
@@ -127,6 +142,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#connect(ChannelHandlerContext, SocketAddress, SocketAddress, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 连接
      */
     ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise);
 
@@ -141,6 +157,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#connect(ChannelHandlerContext, SocketAddress, SocketAddress, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 重载连接
      */
     ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise);
 
@@ -154,6 +171,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#disconnect(ChannelHandlerContext, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 重载断开
      */
     ChannelFuture disconnect(ChannelPromise promise);
 
@@ -169,6 +187,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#close(ChannelHandlerContext, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 重载关闭
      */
     ChannelFuture close(ChannelPromise promise);
 
@@ -183,6 +202,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#deregister(ChannelHandlerContext, ChannelPromise)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 重载取消注册
      */
     ChannelFuture deregister(ChannelPromise promise);
 
@@ -197,6 +217,7 @@ public interface ChannelOutboundInvoker {
      * {@link ChannelOutboundHandler#read(ChannelHandlerContext)}
      * method called of the next {@link ChannelOutboundHandler} contained in the {@link ChannelPipeline} of the
      * {@link Channel}.
+     * 读事件
      */
     ChannelOutboundInvoker read();
 
@@ -204,6 +225,7 @@ public interface ChannelOutboundInvoker {
      * Request to write a message via this {@link ChannelHandlerContext} through the {@link ChannelPipeline}.
      * This method will not request to actual flush, so be sure to call {@link #flush()}
      * once you want to request to flush all pending data to the actual transport.
+     * 写接口
      */
     ChannelFuture write(Object msg);
 
@@ -211,16 +233,19 @@ public interface ChannelOutboundInvoker {
      * Request to write a message via this {@link ChannelHandlerContext} through the {@link ChannelPipeline}.
      * This method will not request to actual flush, so be sure to call {@link #flush()}
      * once you want to request to flush all pending data to the actual transport.
+     * 重载写
      */
     ChannelFuture write(Object msg, ChannelPromise promise);
 
     /**
      * Request to flush all pending messages via this ChannelOutboundInvoker.
+     * 刷新(输出)所有当前ChannelOutboundInvoker缓冲的信息
      */
     ChannelOutboundInvoker flush();
 
     /**
      * Shortcut for call {@link #write(Object, ChannelPromise)} and {@link #flush()}.
+     * 写并且输出(立刻输出)
      */
     ChannelFuture writeAndFlush(Object msg, ChannelPromise promise);
 
@@ -231,6 +256,7 @@ public interface ChannelOutboundInvoker {
 
     /**
      * Return a new {@link ChannelPromise}.
+     * 返回一个新的ChannelPromise
      */
     ChannelPromise newPromise();
 

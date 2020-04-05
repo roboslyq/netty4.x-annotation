@@ -37,7 +37,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
 
     /**
      * Shortcut method for {@link #shutdownGracefully(long, long, TimeUnit)} with sensible default values.
-     *
+     * 使用默认参数值优雅的关闭线程，最终调用{@link #shutdownGracefully(long, long, TimeUnit)}实现。
      * @return the {@link #terminationFuture()}
      */
     Future<?> shutdownGracefully();
@@ -53,7 +53,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
      * @param timeout     the maximum amount of time to wait until the executor is {@linkplain #shutdown()}
      *                    regardless if a task was submitted during the quiet period
      * @param unit        the unit of {@code quietPeriod} and {@code timeout}
-     *
+     * 优雅的关闭线程
      * @return the {@link #terminationFuture()}
      */
     Future<?> shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit);

@@ -19,6 +19,7 @@ import io.netty.util.IntSupplier;
 
 /**
  * Default select strategy.
+ * Slector的select策略.
  */
 final class DefaultSelectStrategy implements SelectStrategy {
     static final SelectStrategy INSTANCE = new DefaultSelectStrategy();
@@ -27,6 +28,7 @@ final class DefaultSelectStrategy implements SelectStrategy {
 
     @Override
     public int calculateStrategy(IntSupplier selectSupplier, boolean hasTasks) throws Exception {
+        // 任务队列有任务就返回任务队列的任务,执行selector.selectNow()操作.否则返回-1.
         return hasTasks ? selectSupplier.get() : SelectStrategy.SELECT;
     }
 }

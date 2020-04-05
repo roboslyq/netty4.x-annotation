@@ -46,7 +46,8 @@ public interface EventExecutor extends EventExecutorGroup {
     /**
      * Return {@code true} if the given {@link Thread} is executed in the event loop,
      * {@code false} otherwise.
-     * 指定线程是否是 EventLoop 线程
+     * 指定线程是否被当前EventLoop 执行，如果是则返回true,否则返回false。此可以保证同一个Thread被同一个
+     * EventLoop执行。
      */
     boolean inEventLoop(Thread thread);
 

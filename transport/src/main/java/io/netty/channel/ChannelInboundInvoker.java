@@ -14,7 +14,15 @@
  * under the License.
  */
 package io.netty.channel;
-
+/**
+ * I/O输出操作相关，具体的输出相关操作请见{@link ChannelOutboundInvoker}
+ * 本类主要有以下几个功能
+ * 1、Channel的注册/取消注册事件
+ * 2、Channel状态Active/InActiove事件
+ * 3、Channel异常事件
+ * 4、Channel读事件
+ * 5、Channel读完成事件
+ */
 public interface ChannelInboundInvoker {
 
     /**
