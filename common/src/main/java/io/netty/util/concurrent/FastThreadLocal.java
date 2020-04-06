@@ -40,6 +40,9 @@ import java.util.Set;
  *
  * @param <V> the type of the thread-local variable
  * @see ThreadLocal
+ *
+ * 1、Netty对JDK 的 ThreadLocal进行的包装优化改进，在NioEventLoop线程中使用更快。
+ * 2、使用方式完成兼容JDK ThreadLocal 的API
  */
 public class FastThreadLocal<V> {
 
@@ -49,6 +52,7 @@ public class FastThreadLocal<V> {
      * Removes all {@link FastThreadLocal} variables bound to the current thread.  This operation is useful when you
      * are in a container environment, and you don't want to leave the thread local variables in the threads you do not
      * manage.
+     * 移除所有的元素，Netty自己控制 ，JDK ThreadLocal需要用户手动删除。
      */
     public static void removeAll() {
         InternalThreadLocalMap threadLocalMap = InternalThreadLocalMap.getIfSet();

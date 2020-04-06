@@ -53,6 +53,7 @@ import static io.netty.channel.ChannelHandlerMask.MASK_USER_EVENT_TRIGGERED;
 import static io.netty.channel.ChannelHandlerMask.MASK_WRITE;
 import static io.netty.channel.ChannelHandlerMask.mask;
 
+
 abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, ResourceLeakHint {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannelHandlerContext.class);
@@ -986,6 +987,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         assert updated; // This should always be true as it MUST be called before setAddComplete() or setRemoved().
     }
 
+    /**
+     * 初始化ChannelHandler
+     * @throws Exception
+     */
     final void callHandlerAdded() throws Exception {
         // We must call setAddComplete before calling handlerAdded. Otherwise if the handlerAdded method generates
         // any pipeline events ctx.handler() will miss them because the state will not allow it.

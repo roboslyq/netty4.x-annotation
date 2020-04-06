@@ -52,6 +52,14 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         tailTasks = newTaskQueue(maxPendingTasks);
     }
 
+    /**
+     * 默认会被子类调用的构造器
+     * @param parent
+     * @param executor
+     * @param addTaskWakesUp
+     * @param maxPendingTasks
+     * @param rejectedExecutionHandler
+     */
     protected SingleThreadEventLoop(EventLoopGroup parent, Executor executor,
                                     boolean addTaskWakesUp, int maxPendingTasks,
                                     RejectedExecutionHandler rejectedExecutionHandler) {
@@ -87,7 +95,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     @Override
     public ChannelFuture register(final ChannelPromise promise) {
         ObjectUtil.checkNotNull(promise, "promise");
-        //promise.channel() = NioServerSocketChannel
+        // promise.channel() = NioServerSocketChannel
         promise.channel().unsafe().register(this, promise);
         return promise;
     }

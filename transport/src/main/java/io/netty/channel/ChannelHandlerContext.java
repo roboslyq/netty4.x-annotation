@@ -121,16 +121,19 @@ import java.nio.channels.Channels;
  * {@link ChannelPipeline} to find out more about inbound and outbound operations,
  * what fundamental differences they have, how they flow in a  pipeline,  and how to handle
  * the operation in your application.
+ * ChannelHandler上下文
  */
 public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvoker, ChannelOutboundInvoker {
 
     /**
      * Return the {@link Channel} which is bound to the {@link ChannelHandlerContext}.
+     * 获取当前ChannelHandler对应的channel
      */
     Channel channel();
 
     /**
      * Returns the {@link EventExecutor} which is used to execute an arbitrary task.
+     * 返回任务task的执行器
      */
     EventExecutor executor();
 
@@ -138,11 +141,13 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      * The unique name of the {@link ChannelHandlerContext}.The name was used when then {@link ChannelHandler}
      * was added to the {@link ChannelPipeline}. This name can also be used to access the registered
      * {@link ChannelHandler} from the {@link ChannelPipeline}.
+     * 返回当前ChannelHandler的名称
      */
     String name();
 
     /**
      * The {@link ChannelHandler} that is bound this {@link ChannelHandlerContext}.
+     * 返回当前的ChannelHandler
      */
     ChannelHandler handler();
 
@@ -150,9 +155,14 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      * Return {@code true} if the {@link ChannelHandler} which belongs to this context was removed
      * from the {@link ChannelPipeline}. Note that this method is only meant to be called from with in the
      * {@link EventLoop}.
+     * 返回ChannelHandler是否已经从ChannelPipeline中移除。
      */
     boolean isRemoved();
 
+    /**
+     * 以下相关的fire开头的方法，是重写ChannelInboundInvoker中相关方法
+     * @return
+     */
     @Override
     ChannelHandlerContext fireChannelRegistered();
 
@@ -188,16 +198,19 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
 
     /**
      * Return the assigned {@link ChannelPipeline}
+     * 返回对应的ChannelPipeline
      */
     ChannelPipeline pipeline();
 
     /**
      * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.
+     * 内存分配
      */
     ByteBufAllocator alloc();
 
     /**
      * @deprecated Use {@link Channel#attr(AttributeKey)}
+     * 返回Channel中对应的Attr
      */
     @Deprecated
     @Override

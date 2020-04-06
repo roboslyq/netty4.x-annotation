@@ -15,10 +15,7 @@
  */
 package io.netty.channel.socket.nio;
 
-import io.netty.channel.ChannelException;
-import io.netty.channel.ChannelMetadata;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelOutboundBuffer;
+import io.netty.channel.*;
 import io.netty.util.internal.SocketUtils;
 import io.netty.channel.nio.AbstractNioMessageChannel;
 import io.netty.channel.socket.DefaultServerSocketChannelConfig;
@@ -41,15 +38,24 @@ import java.util.Map;
 /**
  * A {@link io.netty.channel.socket.ServerSocketChannel} implementation which uses
  * NIO selector based implementation to accept new connections.
+ * NIO Selector的实现，用来接收新的连接。
  */
 public class NioServerSocketChannel extends AbstractNioMessageChannel
                              implements io.netty.channel.socket.ServerSocketChannel {
 
     private static final ChannelMetadata METADATA = new ChannelMetadata(false, 16);
+    /**
+     * 默认的Selector提供者
+     */
     private static final SelectorProvider DEFAULT_SELECTOR_PROVIDER = SelectorProvider.provider();
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(NioServerSocketChannel.class);
 
+    /**
+     * 创建ServerSocketChannel实例
+     * @param provider
+     * @return
+     */
     private static ServerSocketChannel newSocket(SelectorProvider provider) {
         try {
             /**
@@ -69,6 +75,8 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
     /**
      * Create a new instance
+     * 无参构造函数，工厂{@link ReflectiveChannelFactory}通过反射创建NioServerSocketChannel实例时
+     * 会调用此方法。
      */
     public NioServerSocketChannel() {
         this(newSocket(DEFAULT_SELECTOR_PROVIDER));
@@ -83,8 +91,10 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
     /**
      * Create a new instance using the given {@link ServerSocketChannel}.
+     * 创建一个实例
      */
     public NioServerSocketChannel(ServerSocketChannel channel) {
+        //一直调用父类的初始化方法，在父类中完成ChannelPipeline的创建。
         super(null, channel, SelectionKey.OP_ACCEPT);
         config = new NioServerSocketChannelConfig(this, javaChannel().socket());
     }

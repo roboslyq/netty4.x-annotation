@@ -23,6 +23,7 @@ import java.util.concurrent.ThreadFactory;
 
 /**
  * Allow to retrieve the {@link EventExecutor} for the calling {@link Thread}.
+ * 事件执行器
  */
 public final class ThreadExecutorMap {
 
@@ -47,6 +48,7 @@ public final class ThreadExecutorMap {
     /**
      * Decorate the given {@link Executor} and ensure {@link #currentExecutor()} will return {@code eventExecutor}
      * when called from within the {@link Runnable} during execution.
+     * 在NioEventLoop中的构造函数调用
      */
     public static Executor apply(final Executor executor, final EventExecutor eventExecutor) {
         ObjectUtil.checkNotNull(executor, "executor");

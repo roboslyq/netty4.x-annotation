@@ -187,7 +187,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     private boolean needsToSelectAgain;
 
     /**
-     * 构造方法
+     * 此构造方法会被调用
      * @param parent
      * @param executor
      * @param selectorProvider
@@ -196,6 +196,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      */
     NioEventLoop(NioEventLoopGroup parent, Executor executor, SelectorProvider selectorProvider,
                  SelectStrategy strategy, RejectedExecutionHandler rejectedExecutionHandler) {
+        // 父类中指定了当前NioEventLoop对应的Executor
         super(parent, executor, false, DEFAULT_MAX_PENDING_TASKS, rejectedExecutionHandler);
         if (selectorProvider == null) {
             throw new NullPointerException("selectorProvider");
@@ -203,7 +204,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         if (strategy == null) {
             throw new NullPointerException("selectStrategy");
         }
-        // 包装的 Selector 对象，经过优化
+        // 在Windows环境下为：WindowsselectorProvider
         provider = selectorProvider;
         //  创建 NIO Selector 对象。
         final SelectorTuple selectorTuple = openSelector();
@@ -239,7 +240,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     /**
-     * 打开一个Selector
+     * 打开一个Selector，在最后会对原生的Selector进行包装为SelectorTuple
      * @return
      */
     private SelectorTuple openSelector() {
@@ -334,6 +335,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
         selectedKeys = selectedKeySet;
         logger.trace("instrumented a special java.util.Set into: {}", unwrappedSelector);
+        // 对SelectorKey进行包装
         return new SelectorTuple(unwrappedSelector,
                                  new SelectedSelectionKeySetSelector(unwrappedSelector, selectedKeySet));
     }
@@ -595,7 +597,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 cancelledKeys = 0;
                 needsToSelectAgain = false;
                 final int ioRatio = this.ioRatio;
-                if (ioRatio == 100) {
+                if (ioRatio == 100) {//默认为50,通常为false
                     try {
                         //核心方法： 处理 Channel 感兴趣的就绪 IO 事件
                         processSelectedKeys();
@@ -760,7 +762,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             final Object a = k.attachment();
 
-            if (a instanceof AbstractNioChannel) {
+            if (a instanceof AbstractNioChannel) {// 默认为true
                 // 处理一个 Channel 就绪的 IO 事件
                 processSelectedKey(k, (AbstractNioChannel) a);
             } else {

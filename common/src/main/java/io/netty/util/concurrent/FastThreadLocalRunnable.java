@@ -17,6 +17,9 @@ package io.netty.util.concurrent;
 
 import io.netty.util.internal.ObjectUtil;
 
+/**
+ *任务执行线程<Netty自己扩展包装JDK 原生 的Runnable接口>
+ */
 final class FastThreadLocalRunnable implements Runnable {
     private final Runnable runnable;
 

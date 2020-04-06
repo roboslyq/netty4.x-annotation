@@ -556,12 +556,17 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             AbstractChannel.this.eventLoop = eventLoop;
-            //正常情况为false
+            //正常情况为false<启动时，在主线程中>
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
                 try {
-                    //注册核心方法
+                    //eventLoop = NioEventLoop : 注册核心方法
+                    /*
+                     * 调用栈如下：
+                     *  SingleThreadEventExecutor#execute()
+                     *     --> SingleThreadEventExecutor#startThread()
+                     */
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -601,6 +606,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);
+                // pipeline发送Channel注册事件
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.

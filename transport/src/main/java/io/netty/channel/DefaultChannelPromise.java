@@ -44,7 +44,8 @@ public class DefaultChannelPromise extends DefaultPromise<Void> implements Chann
 
     /**
      * Creates a new instance.
-     *
+     * 创建一个DefaultChannelPromise对象，此对象相当于一个Future。
+     * 在Channel注册到EventLoop中，会被调用。
      * @param channel
      *        the {@link Channel} associated with this future
      */

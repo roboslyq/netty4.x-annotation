@@ -28,11 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A special {@link ChannelInboundHandler} which offers an easy way to initialize a {@link Channel} once it was
  * registered to its {@link EventLoop}.
+ * 一个特殊的ChannelInboundHandler，当Channel注册到对应的EventLoop时，可以通过此类方便完成Channel初始化。
  *
  * Implementations are most often used in the context of {@link Bootstrap#handler(ChannelHandler)} ,
  * {@link ServerBootstrap#handler(ChannelHandler)} and {@link ServerBootstrap#childHandler(ChannelHandler)} to
  * setup the {@link ChannelPipeline} of a {@link Channel}.
- *
+ * 通常在如下代码中使用：
  * <pre>
  *
  * public class MyChannelInitializer extends {@link ChannelInitializer} {
@@ -49,6 +50,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * Be aware that this class is marked as {@link Sharable} and so the implementation must be safe to be re-used.
  *
  * @param <C>   A sub-type of {@link Channel}
+ * 每一个Channel生成时(包括ServerSocketChannel和SocketChannel)，即服务启动的监听Channel和客户端与服务端建立起的
+ *           通讯Channel(一个客户端对应一个Channel)，均会调用此类的initChannel()方法进行初始化。
+ *           从而构建好相应的ChannelPipeline。
  */
 @Sharable
 public abstract class ChannelInitializer<C extends Channel> extends ChannelInboundHandlerAdapter {
@@ -67,6 +71,19 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
      * @throws Exception    is thrown if an error occurs. In that case it will be handled by
      *                      {@link #exceptionCaught(ChannelHandlerContext, Throwable)} which will by default close
      *                      the {@link Channel}.
+     * 初始化Channel，通常通过匿名类或者用户自定义类实现。
+     * e.g.:
+     * ServerBootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
+     *                  @Override
+     *                  public void initChannel(SocketChannel ch) throws Exception {
+     *                      ChannelPipeline p = ch.pipeline();
+     *                      if (sslCtx != null) {
+     *                          p.addLast(sslCtx.newHandler(ch.alloc()));
+     *                      }
+     *                      p.addLast(new LoggingHandler(LogLevel.INFO));
+     *                      p.addLast(serverHandler);
+     *                  }
+     *              });
      */
     protected abstract void initChannel(C ch) throws Exception;
 
@@ -110,6 +127,7 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
             // The good thing about calling initChannel(...) in handlerAdded(...) is that there will be no ordering
             // surprises if a ChannelInitializer will add another ChannelInitializer. This is as all handlers
             // will be added in the expected order.
+            // 初始化ChannelHandler,会调用ChannelPipeline中的设置的ChannelInitializer进行初始化
             if (initChannel(ctx)) {
 
                 // We are done with init the Channel, removing the initializer now.
@@ -123,10 +141,17 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
         initMap.remove(ctx);
     }
 
+    /**
+     * 初始化Channel
+     * @param ctx
+     * @return
+     * @throws Exception
+     */
     @SuppressWarnings("unchecked")
     private boolean initChannel(ChannelHandlerContext ctx) throws Exception {
         if (initMap.add(ctx)) { // Guard against re-entrance.
             try {
+                // 构建channelPipeline链。
                 initChannel((C) ctx.channel());
             } catch (Throwable cause) {
                 // Explicitly call exceptionCaught(...) as we removed the handler before calling initChannel(...).

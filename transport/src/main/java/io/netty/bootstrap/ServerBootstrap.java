@@ -86,6 +86,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
      * Set the {@link EventLoopGroup} for the parent (acceptor) and the child (client). These
      * {@link EventLoopGroup}'s are used to handle all the events and IO for {@link ServerChannel} and
      * {@link Channel}'s.
+     * 设置Reactor的主线程和从线程
+     * parentGroup为主线程组:处理IO连接
+     * childGroup为从线程组：处理具体的IO读写
      */
     public ServerBootstrap group(EventLoopGroup parentGroup, EventLoopGroup childGroup) {
         super.group(parentGroup);
@@ -132,6 +135,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     /**
      * Set the {@link ChannelHandler} which is used to serve the request for the {@link Channel}'s.
+     * 设置从线程组的相关处理器。
      */
     public ServerBootstrap childHandler(ChannelHandler childHandler) {
         this.childHandler = ObjectUtil.checkNotNull(childHandler, "childHandler");
@@ -139,7 +143,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
     }
 
     /**
-     * 服务启动时配置channel
+     * 服务启动时配置channel<NioServerSocketChannel>
      * @param channel
      * @throws Exception
      */
@@ -156,7 +160,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             setChannelOptions(channel, options, logger);
         }
         /*
-         *TODO :
+         * Channel设置的相关属性
          */
         final Map<AttributeKey<?>, Object> attrs = attrs0();
         synchronized (attrs) {
@@ -168,7 +172,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         }
         /*
          * channel = NioServerSocketChannel： 初始化channelPipeline
-         * p = DefaultChannelPipeline
+         * p = DefaultChannelPipeline <在父类AbstractChannel构造方法中完成初始化>
          */
         ChannelPipeline p = channel.pipeline();
         //设置相关属性
@@ -183,6 +187,37 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             currentChildAttrs = childAttrs.entrySet().toArray(newAttrArray(0));
         }
         //构造channelPipeline链最后一个channelHandler，此链固定为：ServerBootstrapAcceptor。用户不用进行相关设置
+        /* 假设用户使用方式如下：
+         ServerBootstrap b = new ServerBootstrap();
+            b.group(bossGroup, workerGroup)
+             .channel(NioServerSocketChannel.class)
+             .option(ChannelOption.SO_BACKLOG, 100)
+             .handler(new LoggingHandler(LogLevel.INFO))
+             .childHandler(new ChannelInitializer<SocketChannel>() {
+                 @Override
+                 public void initChannel(SocketChannel ch) throws Exception {
+                     ChannelPipeline p = ch.pipeline();
+                     if (sslCtx != null) {
+                         p.addLast(sslCtx.newHandler(ch.alloc()));
+                     }
+                     p.addLast(new LoggingHandler(LogLevel.INFO));
+                     p.addLast(serverHandler);
+                 }
+             });
+
+          那么，在此时，p中已经可能存在3个ChannelHandler了
+               p.addLast(sslCtx.newHandler(ch.alloc()));
+               p.addLast(new LoggingHandler(LogLevel.INFO));
+               p.addLast(serverHandler);
+          那么，再调用一次下面方法后，结果为：
+               p.addLast(sslCtx.newHandler(ch.alloc()));
+               p.addLast(new LoggingHandler(LogLevel.INFO));
+               p.addLast(serverHandler);
+               pipeline.addLast(new ServerBootstrapAcceptor())
+
+          DefaultChannelPipeline采用了链表方式保存上述结构关系。
+         */
+
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) throws Exception {
@@ -226,6 +261,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return new Map.Entry[size];
     }
 
+    /**
+     * Acceptor实现
+     */
     private static class ServerBootstrapAcceptor extends ChannelInboundHandlerAdapter {
 
         private final EventLoopGroup childGroup;
@@ -255,6 +293,11 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             };
         }
 
+        /**
+         * Acceptor读请求实现
+         * @param ctx
+         * @param msg
+         */
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {

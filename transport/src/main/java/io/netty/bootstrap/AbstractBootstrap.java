@@ -56,6 +56,8 @@ import java.util.Map;
  * C ：继承 Channel 类，表示表示创建的 Channel 类型。
  */
 public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C extends Channel> implements Cloneable {
+    //===============当前类设置相关的信息均为Reactor主从线程模型中的主线程组相关参数，
+    // 具体从线程组的信息在具体子类ServerBootstrap中配置  ==================
     /**
      * EventLoopGroup 对象
      */
@@ -78,7 +80,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      */
     private final Map<AttributeKey<?>, Object> attrs = new LinkedHashMap<AttributeKey<?>, Object>();
     /**
-     *  处理器
+     *  Reactor主线组组 处理器
      */
     private volatile ChannelHandler handler;
 
@@ -319,7 +321,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      */
     private ChannelFuture doBind(final SocketAddress localAddress) {
         /*
-         * 异步初始化并且注册
+         * 异步初始化并且注册: 绑定Channel与NioEventLoop
          */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
@@ -387,9 +389,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
         /*
-         * 注册 Channel 到 EventLoopGroup 中
-         * config.group() = EventLoopGroup ,具体实例为MultithreadEventLoopGroup
-         * config().group().registrer()  = MultithreadEventLoopGroup.registrer()
+         * 注册 Channel 到 EventLoopGroup 中：即将Channel（NioServerSocketChannel）注册到Reactor主线程中。
+         *  config.group() = EventLoopGroup ,具体实例为MultithreadEventLoopGroup
+         *  config().group().registrer()  = MultithreadEventLoopGroup.registrer()
          */
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
@@ -436,7 +438,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         // the pipeline in its channelRegistered() implementation.
         //调用 EventLoop 执行 Channel 的端口绑定逻辑。
         // 这个方法在channelRegistered()触发前被调用，以便用户可以在channelRegistered()去设置pipeline相关信息。
-
+        // channel.eventLoop().execute() = AstractEventExecutor.safeExecute()
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {

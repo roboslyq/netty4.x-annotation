@@ -85,6 +85,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private volatile Thread thread;
     @SuppressWarnings("unused")
     private volatile ThreadProperties threadProperties;
+    /**
+     * 默认为ThreadExecutorMap.apply(executor, this),在构造函数中完成相应的构造。
+     */
     private final Executor executor;
     private volatile boolean interrupted;
 
@@ -148,7 +151,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     /**
      * Create a new instance
-     *
+     * 默认会被子类调用的构造器
      * @param parent            the {@link EventExecutorGroup} which is the parent of this instance and belongs to it
      * @param executor          the {@link Executor} which will be used for executing
      * @param addTaskWakesUp    {@code true} if and only if invocation of {@link #addTask(Runnable)} will wake up the
@@ -159,9 +162,11 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     protected SingleThreadEventExecutor(EventExecutorGroup parent, Executor executor,
                                         boolean addTaskWakesUp, int maxPendingTasks,
                                         RejectedExecutionHandler rejectedHandler) {
+       // parent = NioEventLoopGroup
         super(parent);
         this.addTaskWakesUp = addTaskWakesUp;
         this.maxPendingTasks = Math.max(16, maxPendingTasks);
+        // 构造executor
         this.executor = ThreadExecutorMap.apply(executor, this);
         taskQueue = newTaskQueue(this.maxPendingTasks);
         rejectedExecutionHandler = ObjectUtil.checkNotNull(rejectedHandler, "rejectedHandler");
@@ -769,6 +774,14 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     /**
      * 运行指定的任务
+     * 在AbstractChannel中的 register(EventLoop eventLoop, final ChannelPromise promise)方法引用：
+     *  //eventLoop = NioEventLoop : 注册核心方法
+     *                     eventLoop.execute(new Runnable() {
+     *                         @Override
+     *                         public void run() {
+     *                             register0(promise);
+     *                         }
+     *                     });
      * @param task
      */
     @Override
@@ -781,6 +794,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         //添加到任务队列
         addTask(task);
         if (!inEventLoop) {
+            //启动任务
             startThread();
             if (isShutdown()) {
                 boolean reject = false;
@@ -884,11 +898,15 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     private static final long SCHEDULE_PURGE_INTERVAL = TimeUnit.SECONDS.toNanos(1);
 
+    /**
+     * 启动线程
+     */
     private void startThread() {
         if (state == ST_NOT_STARTED) {
             if (STATE_UPDATER.compareAndSet(this, ST_NOT_STARTED, ST_STARTED)) {
                 boolean success = false;
                 try {
+                    // 启动线程
                     doStartThread();
                     success = true;
                 } finally {
@@ -929,6 +947,11 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      */
     private void doStartThread() {
         assert thread == null;
+        /*
+         *  executor = ThreadExecutorMap
+         *      --> executor = ThreadPerTaskExecutor
+         *      --> eventExecutor = NioEventLoop
+         */
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -940,6 +963,22 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 boolean success = false;
                 updateLastExecutionTime();
                 try {
+                    //重点: SingleThreadEventExecutor.this = NioEventLoop
+                    /*
+                    “类名.this”的语法在Java语言中叫做“qualified this”。相关规定在这里：Chapter 15. Expressions - Qualified this
+                        这个语法的主要用途是：在内部类的方法中，要指定某个嵌套层次的外围类的“this”引用时，使用“外围类名.this”语法。例如说：
+
+                        class Foo {
+                          class Bar {
+                            Foo getFoo() {
+                              return Foo.this;
+                            }
+                          }
+                        }
+
+                        在Foo.Bar类中的getFoo()方法中，如果直接写“this”的话所指的是这个Foo.Bar类的实例，而如果要指定外围的Foo类的this实例的话，这里就得写成Foo.this。
+                        特别的，如果在上例的getFoo()方法中写Bar.this的话，作用就跟直接写this一样，指定的是当前的Foo.Bar类实例。
+                     */
                     SingleThreadEventExecutor.this.run();
                     success = true;
                 } catch (Throwable t) {

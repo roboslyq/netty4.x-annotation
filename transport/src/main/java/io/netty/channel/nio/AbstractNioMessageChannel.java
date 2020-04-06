@@ -59,6 +59,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 
         private final List<Object> readBuf = new ArrayList<Object>();
 
+        /**
+         * 消息类型为Message时使用此read()
+         */
         @Override
         public void read() {
             assert eventLoop().inEventLoop();
@@ -71,7 +74,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             Throwable exception = null;
             try {
                 try {
-                    do {
+                    do {//读消息
                         int localRead = doReadMessages(readBuf);
                         if (localRead == 0) {
                             break;

@@ -29,7 +29,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * the same time.
  */
 public abstract class MultithreadEventExecutorGroup extends AbstractEventExecutorGroup {
-
+    /**
+     * NioEventLoop线程数据
+     */
     private final EventExecutor[] children;
     private final Set<EventExecutor> readonlyChildren;
     private final AtomicInteger terminatedChildren = new AtomicInteger();
@@ -71,16 +73,17 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         if (nThreads <= 0) {
             throw new IllegalArgumentException(String.format("nThreads: %d (expected: > 0)", nThreads));
         }
-
+        // 初始化 任务执行器: ThreadPerTaskExecutor
         if (executor == null) {
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
 
         children = new EventExecutor[nThreads];
-
+        // 服务端启动时，对应的具体实现类为NioEventLoopGroup，初始化具体线程NioEventLoop
         for (int i = 0; i < nThreads; i ++) {
             boolean success = false;
             try {
+                // 如果是NioEventLoopGroup，则进行NioEventLoopGroup.newChild()方法中。
                 children[i] = newChild(executor, args);
                 success = true;
             } catch (Exception e) {

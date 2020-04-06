@@ -80,6 +80,17 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     /**
      * Create a new instance using the default number of threads, the default {@link ThreadFactory} and
      * the {@link SelectorProvider} which is returned by {@link SelectorProvider#provider()}.
+     * 创建NioEventLoopGroup实例，此处会层层调用父类的构造器。
+     * 同时，在父类中最终完成NioEventLoop的实例初始化。
+     * MultithreadEventExecutorGroup==>
+     *      if (executor == null) {
+     *             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
+     *         }
+     *
+     *      protected ThreadFactory newDefaultThreadFactory() {
+     *         return new DefaultThreadFactory(getClass());
+     *     }
+     *
      */
     public NioEventLoopGroup() {
         this(0);
@@ -163,6 +174,15 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
         }
     }
 
+    /**
+     * 实例化具体的NioEventLoop线程。
+     * @param executor ThreadPerTaskExecutor
+     * @param args args[0] = 在windows下为WindowsSelectorProvider
+     *             args[1] = DefaultSelectStrategyFactory
+     *             args[1] = RejectedExecutionHandler
+     * @return
+     * @throws Exception
+     */
     @Override
     protected EventLoop newChild(Executor executor, Object... args) throws Exception {
         return new NioEventLoop(this, executor, (SelectorProvider) args[0],

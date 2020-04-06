@@ -18,7 +18,13 @@ package io.netty.util.concurrent;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
+/**
+ * 单个任务执行器
+ */
 public final class ThreadPerTaskExecutor implements Executor {
+    /**
+     * 默认的实现是 {@link DefaultThreadFactory}
+     */
     private final ThreadFactory threadFactory;
 
     public ThreadPerTaskExecutor(ThreadFactory threadFactory) {
@@ -28,8 +34,16 @@ public final class ThreadPerTaskExecutor implements Executor {
         this.threadFactory = threadFactory;
     }
 
+    /**
+     * 执行相应任务
+     * @param command
+     */
     @Override
     public void execute(Runnable command) {
+        /*
+         *使用ThreadFactory对任务进行包装，通过将普通的Runnable包装为FastThreadLocalRunnable。
+         * 详情见 DefaultThreadFactory.newThread()
+         */
         threadFactory.newThread(command).start();
     }
 }

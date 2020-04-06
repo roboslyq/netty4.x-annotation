@@ -84,7 +84,10 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
     protected abstract EventLoop newChild(Executor executor, Object... args) throws Exception;
 
     /**
-     * 注册Channel到Selector上
+     * 1、注册Channel到具体的NioEventLoop上
+     * 2、Reactor模型中，NioEventloopGroup相当于线程组，NioEventLoop就是具体干活的线程。
+     *      所以绑定，即将Channel与具体的NioEventLoop进行绑定。
+     * 3、进行绑定的时候，也会将Channel注册到JDK中的Selector中
      * @param channel
      * @return
      */
@@ -92,6 +95,7 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
     public ChannelFuture register(Channel channel) {
         // group.next() = NioEventLoop
         // NioEvnetLoop.register()= SingleThreadEventLoop.register()
+        // 将Channel注册到Reactor主线程组中具体的EventLoop线程中去，此时已经建议Channel与EventLoop对应关系。
         return next().register(channel);
     }
 
