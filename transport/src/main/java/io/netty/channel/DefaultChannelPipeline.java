@@ -51,10 +51,15 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 public class DefaultChannelPipeline implements ChannelPipeline {
 
     static final InternalLogger logger = InternalLoggerFactory.getInstance(DefaultChannelPipeline.class);
-
+    /**
+     * HEAD 和 TAIL已经固定，不能更改
+     */
     private static final String HEAD_NAME = generateName0(HeadContext.class);
     private static final String TAIL_NAME = generateName0(TailContext.class);
 
+    /**
+     * FastThreadLocal 对JDK的ThreadLocal进行优化包装
+     */
     private static final FastThreadLocal<Map<Class<?>, String>> nameCaches =
             new FastThreadLocal<Map<Class<?>, String>>() {
         @Override
@@ -76,13 +81,19 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      * 写数据时，起始节点
      */
     final AbstractChannelHandlerContext tail;
-
+    /**
+     * 当前pipeline对应
+     */
     private final Channel channel;
+
     private final ChannelFuture succeededFuture;
     private final VoidChannelPromise voidPromise;
     private final boolean touch = ResourceLeakDetector.isEnabled();
 
     private Map<EventExecutorGroup, EventExecutor> childExecutors;
+    /**
+     * estimator: 观测器
+     */
     private volatile MessageSizeEstimator.Handle estimatorHandle;
     private boolean firstRegistration = true;
 
@@ -99,9 +110,14 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     /**
      * Set to {@code true} once the {@link AbstractChannel} is registered.Once set to {@code true} the value will never
      * change.
+     * 是否注册状态标识：一旦Channel注册成功，这个标识就会被改为true,一直不会变。
      */
     private boolean registered;
 
+    /**
+     * 构造函数
+     * @param channel
+     */
     protected DefaultChannelPipeline(Channel channel) {
         this.channel = ObjectUtil.checkNotNull(channel, "channel");
         succeededFuture = new SucceededChannelFuture(channel, null);
@@ -246,10 +262,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
             EventExecutor executor = newCtx.executor();
             if (!executor.inEventLoop()) {
+                // 最终会触发ChannelInitializer#initChannel(ChannelHandlerContext ctx) 方法，完成pipeline构建
                 callHandlerAddedInEventLoop(newCtx, executor);
                 return this;
             }
         }
+        // 最终会触发ChannelInitializer#initChannel(ChannelHandlerContext ctx) 方法，完成pipeline构建
         callHandlerAdded0(newCtx);
         return this;
     }
@@ -434,6 +452,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             if (h == null) {
                 break;
             }
+            //添加一个Handler
             addLast(executor, null, h);
         }
 
@@ -657,8 +676,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     *  添加Handler
+     * @param ctx
+     */
     private void callHandlerAdded0(final AbstractChannelHandlerContext ctx) {
         try {
+            // 添加Handler： 最终会触发ChannelInitializer#initChannel(ChannelHandlerContext ctx) 方法，完成pipeline构建
             ctx.callHandlerAdded();
         } catch (Throwable t) {
             boolean removed = false;
@@ -694,6 +718,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 构建完整的channelPipeline
+     */
     final void invokeHandlerAddedIfNeeded() {
         assert channel.eventLoop().inEventLoop();
         if (firstRegistration) {
@@ -1172,7 +1199,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 构建channelPipeline
+     */
     private void callHandlerAddedForAllHandlers() {
+        // 默认实现为PendingHandlerAddedTask
         final PendingHandlerCallback pendingHandlerCallbackHead;
         synchronized (this) {
             assert !registered;
@@ -1188,6 +1219,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         // This must happen outside of the synchronized(...) block as otherwise handlerAdded(...) may be called while
         // holding the lock and so produce a deadlock if handlerAdded(...) will try to add another handler from outside
         // the EventLoop.
+
         PendingHandlerCallback task = pendingHandlerCallbackHead;
         while (task != null) {
             task.execute();
@@ -1533,6 +1565,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         abstract void execute();
     }
 
+    /**
+     * 添加Handler任务
+     */
     private final class PendingHandlerAddedTask extends PendingHandlerCallback {
 
         PendingHandlerAddedTask(AbstractChannelHandlerContext ctx) {

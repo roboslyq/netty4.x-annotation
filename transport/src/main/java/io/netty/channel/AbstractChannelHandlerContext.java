@@ -1007,6 +1007,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         // We must call setAddComplete before calling handlerAdded. Otherwise if the handlerAdded method generates
         // any pipeline events ctx.handler() will miss them because the state will not allow it.
         if (setAddComplete()) {
+            // handler() =  ChannelInitializer
+           // 最终会触发ChannelInitializer#initChannel(ChannelHandlerContext ctx) 方法，完成pipeline构建
             handler().handlerAdded(this);
         }
     }

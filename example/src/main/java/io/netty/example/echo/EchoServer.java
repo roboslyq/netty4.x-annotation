@@ -29,6 +29,7 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.util.AttributeKey;
 
 /**
  * Echoes back any received data from a client.
@@ -73,11 +74,20 @@ public final class EchoServer {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         final EchoServerHandler serverHandler = new EchoServerHandler();
         try {
+            // 创建辅助启动类ServerBootstrap，并设置相关配置：
             ServerBootstrap b = new ServerBootstrap();
+            // 设置处理Accept事件和读写操作的事件循环组
             b.group(bossGroup, workerGroup)
+                    // 配置Channel类型
              .channel(NioServerSocketChannel.class)
+                    // 配置监听地址
+//             .localAddress()
+                    // 设置服务器通道的选项，设置TCP属性
              .option(ChannelOption.SO_BACKLOG, 100)
+                    // channel属性，便于保存用户自定义数据
+//                    .attr(AttributeKey.newInstance("UserId"), "60293")
              .handler(new LoggingHandler(LogLevel.INFO))
+                    // 设置子处理器，主要是用户的自定义处理器，用于处理IO网络事件
              .childHandler(new ChannelInitializer<SocketChannel>() {
                  @Override
                  public void initChannel(SocketChannel ch) throws Exception {
@@ -91,10 +101,13 @@ public final class EchoServer {
              });
 
             // Start the server.
+            // 调用bind()方法绑定端口，sync()会阻塞等待处理请求。这是因为bind()方法是一个异步过程，
+            // 会立即返回一个ChannelFuture对象，调用sync()会等待执行完成
             // 核心流程：启动服务，监听端口，并同步阻塞
             ChannelFuture f = b.bind(PORT).sync();
 
             // Wait until the server socket is closed.
+            // 获得Channel的closeFuture阻塞等待关闭，服务器Channel关闭时closeFuture会完成
             f.channel().closeFuture().sync();
 
         } finally {

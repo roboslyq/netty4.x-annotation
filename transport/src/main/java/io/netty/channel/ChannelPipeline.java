@@ -34,10 +34,12 @@ import java.util.NoSuchElementException;
  * <a href="http://www.oracle.com/technetwork/java/interceptingfilter-142169.html">Intercepting Filter</a> pattern
  * to give a user full control over how an event is handled and how the {@link ChannelHandler}s in a pipeline
  * interact with each other.
+ * ===> 1、ChannelPipeLine是一系列ChannelHandler集合。ChannelHandler具体处理I/O 输入或者输出相关事件的能力。
  *
  * <h3>Creation of a pipeline</h3>
  *
  * Each channel has its own pipeline and it is created automatically when a new channel is created.
+ * ===>每个具体的Channel有它们自己独立的pipeline,并且pipeline在channel被创建时自己完成初始化。
  *
  * <h3>How an event flows in a pipeline</h3>
  *
@@ -122,11 +124,19 @@ import java.util.NoSuchElementException;
  * <li>If 5 implements both {@link ChannelInboundHandler} and {@link ChannelOutboundHandler}, the evaluation order of
  *     an inbound and a outbound event could be 125 and 543 respectively.</li>
  * </ul>
- *
+ * ============================================================
+ * 结论： (1) Inboud正序执行<仅执行实现了ChannelInboundHandler接口的Handler，忽略掉没有实现ChannelInboundHandler接口的Handler>，先添加，先执行
+ *       (2) Outbound时逆序执行<仅执行实现了ChannelOutboundHandler接口的Handler，忽略掉没有实现ChannelOutboundHandler接口的Handler>，后添加，先执行
+ *       (3) 若一个Handler实现了Inbound 和 Outbound两个接口，则inbound 和 outbind事件都会执行。
+ * ============================================================
  * <h3>Forwarding an event to the next handler</h3>
  *
  * As you might noticed in the diagram shows, a handler has to invoke the event propagation methods in
- * {@link ChannelHandlerContext} to forward an event to its next handler.  Those methods include:
+ * {@link ChannelHandlerContext} to forward an event to its next handler.
+ * ============================================================
+ *  ChannelPipeline中Handler不是直接被调用的，而是通过ChannelHandlerContext
+ * ============================================================
+ * Those methods include:
  * <ul>
  * <li>Inbound event propagation methods:
  *     <ul>
@@ -226,6 +236,7 @@ public interface ChannelPipeline
      *         if there's an entry with the same name already in the pipeline
      * @throws NullPointerException
      *         if the specified handler is {@code null}
+     *         在头部添加ChannelHandler
      */
     ChannelPipeline addFirst(String name, ChannelHandler handler);
 
@@ -241,6 +252,7 @@ public interface ChannelPipeline
      *         if there's an entry with the same name already in the pipeline
      * @throws NullPointerException
      *         if the specified handler is {@code null}
+     *         在头部添加ChannelHandler
      */
     ChannelPipeline addFirst(EventExecutorGroup group, String name, ChannelHandler handler);
 
@@ -254,6 +266,7 @@ public interface ChannelPipeline
      *         if there's an entry with the same name already in the pipeline
      * @throws NullPointerException
      *         if the specified handler is {@code null}
+     *         在尾部追加ChannelHandler
      */
     ChannelPipeline addLast(String name, ChannelHandler handler);
 
@@ -269,6 +282,7 @@ public interface ChannelPipeline
      *         if there's an entry with the same name already in the pipeline
      * @throws NullPointerException
      *         if the specified handler is {@code null}
+     *          在尾部追加ChannelHandler
      */
     ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler);
 
@@ -286,6 +300,7 @@ public interface ChannelPipeline
      *         if there's an entry with the same name already in the pipeline
      * @throws NullPointerException
      *         if the specified baseName or handler is {@code null}
+     *         在指定的“baseName” ChannelHandler前面添加ChannelHandler
      */
     ChannelPipeline addBefore(String baseName, String name, ChannelHandler handler);
 
@@ -305,6 +320,7 @@ public interface ChannelPipeline
      *         if there's an entry with the same name already in the pipeline
      * @throws NullPointerException
      *         if the specified baseName or handler is {@code null}
+     *         在指定的“baseName” ChannelHandler前面添加ChannelHandler
      */
     ChannelPipeline addBefore(EventExecutorGroup group, String baseName, String name, ChannelHandler handler);
 
@@ -322,6 +338,7 @@ public interface ChannelPipeline
      *         if there's an entry with the same name already in the pipeline
      * @throws NullPointerException
      *         if the specified baseName or handler is {@code null}
+     *         在指定的“baseName” ChannelHandler后面添加ChannelHandler
      */
     ChannelPipeline addAfter(String baseName, String name, ChannelHandler handler);
 
@@ -341,6 +358,7 @@ public interface ChannelPipeline
      *         if there's an entry with the same name already in the pipeline
      * @throws NullPointerException
      *         if the specified baseName or handler is {@code null}
+     *         在指定的“baseName” ChannelHandler后面添加ChannelHandler
      */
     ChannelPipeline addAfter(EventExecutorGroup group, String baseName, String name, ChannelHandler handler);
 
@@ -348,6 +366,7 @@ public interface ChannelPipeline
      * Inserts {@link ChannelHandler}s at the first position of this pipeline.
      *
      * @param handlers  the handlers to insert first
+     *                  在头部添加ChannelHandler<支持多个>
      *
      */
     ChannelPipeline addFirst(ChannelHandler... handlers);
@@ -358,7 +377,7 @@ public interface ChannelPipeline
      * @param group     the {@link EventExecutorGroup} which will be used to execute the {@link ChannelHandler}s
      *                  methods.
      * @param handlers  the handlers to insert first
-     *
+     *  在头部添加ChannelHandler<支持多个>
      */
     ChannelPipeline addFirst(EventExecutorGroup group, ChannelHandler... handlers);
 
@@ -366,6 +385,7 @@ public interface ChannelPipeline
      * Inserts {@link ChannelHandler}s at the last position of this pipeline.
      *
      * @param handlers  the handlers to insert last
+     *                   在尾部添加ChannelHandler<支持多个>
      *
      */
     ChannelPipeline addLast(ChannelHandler... handlers);
@@ -376,6 +396,7 @@ public interface ChannelPipeline
      * @param group     the {@link EventExecutorGroup} which will be used to execute the {@link ChannelHandler}s
      *                  methods.
      * @param handlers  the handlers to insert last
+     *                  在尾部添加ChannelHandler<支持多个>
      *
      */
     ChannelPipeline addLast(EventExecutorGroup group, ChannelHandler... handlers);
@@ -389,6 +410,7 @@ public interface ChannelPipeline
      *         if there's no such handler in this pipeline
      * @throws NullPointerException
      *         if the specified handler is {@code null}
+     *         移除
      */
     ChannelPipeline remove(ChannelHandler handler);
 
@@ -403,6 +425,7 @@ public interface ChannelPipeline
      *         if there's no such handler with the specified name in this pipeline
      * @throws NullPointerException
      *         if the specified name is {@code null}
+     *         移除
      */
     ChannelHandler remove(String name);
 
@@ -418,6 +441,7 @@ public interface ChannelPipeline
      *         if there's no such handler of the specified type in this pipeline
      * @throws NullPointerException
      *         if the specified handler type is {@code null}
+     *         移除
      */
     <T extends ChannelHandler> T remove(Class<T> handlerType);
 
@@ -428,6 +452,7 @@ public interface ChannelPipeline
      *
      * @throws NoSuchElementException
      *         if this pipeline is empty
+     *         移除头部
      */
     ChannelHandler removeFirst();
 
@@ -438,6 +463,7 @@ public interface ChannelPipeline
      *
      * @throws NoSuchElementException
      *         if this pipeline is empty
+     *         移除尾部
      */
     ChannelHandler removeLast();
 
@@ -458,6 +484,7 @@ public interface ChannelPipeline
      * @throws NullPointerException
      *         if the specified old handler or new handler is
      *         {@code null}
+     *         替换
      */
     ChannelPipeline replace(ChannelHandler oldHandler, String newName, ChannelHandler newHandler);
 
@@ -478,6 +505,7 @@ public interface ChannelPipeline
      * @throws NullPointerException
      *         if the specified old handler or new handler is
      *         {@code null}
+     *          替换
      */
     ChannelHandler replace(String oldName, String newName, ChannelHandler newHandler);
 
@@ -499,6 +527,7 @@ public interface ChannelPipeline
      * @throws NullPointerException
      *         if the specified old handler or new handler is
      *         {@code null}
+     *          替换
      */
     <T extends ChannelHandler> T replace(Class<T> oldHandlerType, String newName,
                                          ChannelHandler newHandler);
@@ -507,6 +536,7 @@ public interface ChannelPipeline
      * Returns the first {@link ChannelHandler} in this pipeline.
      *
      * @return the first handler.  {@code null} if this pipeline is empty.
+     * 获取pipeline头部元素的ChannelHandler
      */
     ChannelHandler first();
 
@@ -514,6 +544,7 @@ public interface ChannelPipeline
      * Returns the context of the first {@link ChannelHandler} in this pipeline.
      *
      * @return the context of the first handler.  {@code null} if this pipeline is empty.
+     * 获取pipeline头部元素
      */
     ChannelHandlerContext firstContext();
 

@@ -28,6 +28,7 @@ import java.nio.channels.Channels;
  * Enables a {@link ChannelHandler} to interact with its {@link ChannelPipeline}
  * and other handlers. Among other things a handler can notify the next {@link ChannelHandler} in the
  * {@link ChannelPipeline} as well as modify the {@link ChannelPipeline} it belongs to dynamically.
+ * 使一个ChannelHandler可以与ChannelPipeline以及其它的handlers进行交互。
  *
  * <h3>Notify</h3>
  *

@@ -38,7 +38,12 @@ import java.util.Map;
 /**
  * A {@link io.netty.channel.socket.ServerSocketChannel} implementation which uses
  * NIO selector based implementation to accept new connections.
- * NIO Selector的实现，用来接收新的连接。
+ * 1、NIO Selector的实现，用来接收新的连接。
+ * 2、创建此Channel需要4步骤：
+ *      1）Channel 创建；AbstractBootstrap#initAndRegister() ->  channelFactory#newChannel()
+ *      2）Channel 初始化；AbstractBootstrap#initAndRegister() ->ServerBootStrap#init(Channel channel)
+ *      3）Channel 注册；AbstractBootstrap#initAndRegister() -> config().group().register(channel)
+ *      4）Channel 绑定:  AbstractBootstrap#doBind0(regFuture, channel, localAddress, promise);
  */
 public class NioServerSocketChannel extends AbstractNioMessageChannel
                              implements io.netty.channel.socket.ServerSocketChannel {
@@ -169,7 +174,9 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
         try {
             if (ch != null) {
-                // 使用Netty的NioSocketChannel包装 JDK 原生的SocketChannel。从而实现Netty与JDK 对接
+                // 1、使用Netty的NioSocketChannel包装 JDK 原生的SocketChannel。从而实现Netty与JDK 对接。
+                // 2、在父类的构造函数中，完成当前Channel的pipeline 创建
+                // 3、并将NioSocketChannel存入buf list中
                 buf.add(new NioSocketChannel(this, ch));
                 return 1;
             }

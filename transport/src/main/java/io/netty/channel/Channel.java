@@ -83,12 +83,18 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
     /**
      * Return the {@link EventLoop} this {@link Channel} was registered to.
+     * 1、返回Channel对应的EventLoop中。Channel与EventLoop关系为多对一，即一个Channel只能注册到一个具体的EventsLoop上，但一个EventLoop
+     * 可以被注册多个Channel。
+     * 2、Channel 通过注册到 EventLoop 的多路复用器上，用于处理 I/O 事件，通过 eventLoop () 方法可以获取到 Channel
+     *     注册的 EventLoop。
+     *     EventLoop 本质上就是处理网络读写事件的 Reactor 线程。在 Netty 中，它不仅仅用来处理网络事件，
+     *     也可以用来执行定时任务和用户自定义 NioTask 等任务。
      */
     EventLoop eventLoop();
 
     /**
      * Returns the parent of this channel.
-     *
+     * 对于服务端 Channel 而言，它的父 Channel 为空；对于客户端 Channel，它的父 Channel 就是创建它的 ServerSocketChannel。
      * @return the parent channel.
      *         {@code null} if this channel does not have a parent channel.
      */
@@ -111,11 +117,17 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
     /**
      * Return {@code true} if the {@link Channel} is active and so connected.
+     * 判断 channel 是否激活。激活的意义取决于底层的传输类型。例如，一个 Socket 传输一旦连接到了远程节点便是活动的，
+     * 而一个 Datagram 传输一旦被打开便是活动的
      */
     boolean isActive();
 
     /**
      * Return the {@link ChannelMetadata} of the {@link Channel} which describe the nature of the {@link Channel}.
+     * 熟悉 TCP 协议的读者可能知道，当创建 Socket 的时候需要指定 TCP 参数，例如接收和发送的 TCP 缓冲区大小，TCP 的超时时间。
+     * 是否重用地址等。在 Netty 中，每个 Channel 对应一个物理链接，每个连接都有自己的 TCP 参数配置。
+     * 所以，Channel 会聚合一个 ChannelMetadata 用来对 TCP 参数提供元数据描述信息，通过 metadata ()
+     * 方法就可以获取当前 Channel 的 TCP 参数配置。
      */
     ChannelMetadata metadata();
 
@@ -124,7 +136,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      * {@link SocketAddress} is supposed to be down-cast into more concrete
      * type such as {@link InetSocketAddress} to retrieve the detailed
      * information.
-     *
+     *  返回本地的 socket 地址
      * @return the local address of this channel.
      *         {@code null} if this channel is not bound.
      */
@@ -135,7 +147,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      * returned {@link SocketAddress} is supposed to be down-cast into more
      * concrete type such as {@link InetSocketAddress} to retrieve the detailed
      * information.
-     *
+     * 返回远程的 socket 地址
      * @return the remote address of this channel.
      *         {@code null} if this channel is not connected.
      *         If this channel is not connected but it can receive messages
@@ -143,6 +155,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *         use {@link DatagramPacket#recipient()} to determine
      *         the origination of the received message as this method will
      *         return {@code null}.
+     *
      */
     SocketAddress remoteAddress();
 
@@ -179,6 +192,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
     /**
      * Return the assigned {@link ChannelPipeline}.
+     * 返回 channel 分配的 ChannelPipeline
      */
     ChannelPipeline pipeline();
 
@@ -187,9 +201,20 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      */
     ByteBufAllocator alloc();
 
+    /**
+     * 从当前的 Channel 中读取数据到第一个 inbound 缓冲区中，如果数据被成功读取，
+     * 触发 ChannelHandler.channelRead (ChannelHandlerContext,Object) 事件。
+     * 读取操作 API 调用完成后，紧接着会触发 ChannelHander.channelReadComplete（ChannelHandlerContext）事件，
+     * 这样业务的 ChannelHandler 可以决定是否需要继续读取数据。如果已经有操作请求被挂起，则后续的读操作会被忽略。
+     * @return
+     */
     @Override
     Channel read();
 
+    /**
+     *  将之前已写的数据冲刷到底层 Channel 上去
+     * @return
+     */
     @Override
     Channel flush();
 

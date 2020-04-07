@@ -103,7 +103,9 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
      *                  具体客户端与服务端的连接。比如 客户B 与 服务端A建立了连接，那个这个SocketChannel就是B和A之前的通道。
      */
     public NioSocketChannel(Channel parent, SocketChannel socket) {
+        // 调用父类构造器
         super(parent, socket);
+        // 创建NioSocketChannelConfig
         config = new NioSocketChannelConfig(this, socket.socket());
     }
 
@@ -466,6 +468,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
     private final class NioSocketChannelConfig extends DefaultSocketChannelConfig {
         private volatile int maxBytesPerGatheringWrite = Integer.MAX_VALUE;
         private NioSocketChannelConfig(NioSocketChannel channel, Socket javaSocket) {
+            // 调用父类构造器
             super(channel, javaSocket);
             calculateMaxBytesPerGatheringWrite();
         }

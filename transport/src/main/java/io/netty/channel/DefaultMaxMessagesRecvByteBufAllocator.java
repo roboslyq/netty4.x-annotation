@@ -132,6 +132,10 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
             return lastBytesRead;
         }
 
+        /**
+         * 判断是否需要继续读取数据
+         * @return
+         */
         @Override
         public boolean continueReading() {
             return continueReading(defaultMaybeMoreSupplier);
@@ -139,6 +143,12 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
 
         @Override
         public boolean continueReading(UncheckedBooleanSupplier maybeMoreDataSupplier) {
+            // 默认情况下 config.isAutoRead() 为true
+            // respectMaybeMoreData 默认为 true
+            // maybeMoreDataSupplier.get() 为false
+            // totalMessages第一次循环则为1
+            // maxMessagePerRead为16
+            // 结果返回false
             return config.isAutoRead() &&
                    (!respectMaybeMoreData || maybeMoreDataSupplier.get()) &&
                    totalMessages < maxMessagePerRead &&
