@@ -225,7 +225,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      * @return
      */
     @Override
-    public final ChannelPipeline  (EventExecutorGroup group, String name, ChannelHandler handler) {
+    public final ChannelPipeline  addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
         // ChannelHandler的上下文环境，通过上下文构建具体的连接
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {

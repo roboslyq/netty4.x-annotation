@@ -35,21 +35,36 @@ import static io.netty.util.internal.StringUtil.NEWLINE;
 /**
  * A {@link ChannelHandler} that logs all events using a logging framework.
  * By default, all events are logged at <tt>DEBUG</tt> level.
+ * 使用一个日志框架，记录所有IO事件相关。通常默认的日志级别为DEBUG。
+ * 日志记录器主要有两部分内容
+ * 1、如何构造一个日志记录器(通过工厂模式，初始化一个日志记录器的实现)
+ * 2、重写Handler相关的事件方法，从而可以接收到对应的事件。进而进行日志打印。
  */
 @Sharable
 @SuppressWarnings({ "StringConcatenationInsideStringBufferAppend", "StringBufferReplaceableByString" })
 public class LoggingHandler extends ChannelDuplexHandler {
-
+    /**
+     * 默认级别为DEBUG
+     */
     private static final LogLevel DEFAULT_LEVEL = LogLevel.DEBUG;
-
+    /**
+     * 内置日志记录器
+     */
     protected final InternalLogger logger;
+    /**
+     * 内置默认级别
+     */
     protected final InternalLogLevel internalLevel;
 
+    /**
+     * 日志级别
+     */
     private final LogLevel level;
 
     /**
      * Creates a new instance whose logger name is the fully qualified class
      * name of the instance with hex dump enabled.
+     * 使用默认的日志级别创建日志记录器
      */
     public LoggingHandler() {
         this(DEFAULT_LEVEL);
@@ -58,14 +73,14 @@ public class LoggingHandler extends ChannelDuplexHandler {
     /**
      * Creates a new instance whose logger name is the fully qualified class
      * name of the instance.
-     *
+     * 指定日志级别创建日志记录器
      * @param level the log level
      */
     public LoggingHandler(LogLevel level) {
         if (level == null) {
             throw new NullPointerException("level");
         }
-
+        //工厂模式，获取日志记录器
         logger = InternalLoggerFactory.getInstance(getClass());
         this.level = level;
         internalLevel = level.toInternalLevel();
@@ -184,7 +199,7 @@ public class LoggingHandler extends ChannelDuplexHandler {
     }
 
     /**
-     * 进行端口绑定
+     * 进行端口绑定日志记录
      * @param ctx
      * @param localAddress
      * @param promise

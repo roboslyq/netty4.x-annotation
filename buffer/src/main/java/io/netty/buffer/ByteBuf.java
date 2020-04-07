@@ -262,7 +262,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * than the current capacity, the buffer is appended with unspecified data whose length is
      * {@code (newCapacity - currentCapacity)}.
      *
-     * 调整容量
+     * 调整容量ChannelHandlerContext
      * @throws IllegalArgumentException if the {@code newCapacity} is greater than {@link #maxCapacity()}
      *
      */

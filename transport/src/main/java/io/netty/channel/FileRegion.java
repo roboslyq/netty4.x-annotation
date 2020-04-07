@@ -49,6 +49,8 @@ import java.nio.channels.WritableByteChannel;
  * performance.  For example, sending a large file doesn't work well in Windows.
  *
  * <h3>Not all transports support it</h3>
+ * 1、包装FileChannel.tranferTo方法实现zero-copy。因为JDK的 FileChannel.tranferTo 实现了Zero Copy
+ *    FileRegion是一个接口，默认的实现类是：DefaultFileRegion
  */
 public interface FileRegion extends ReferenceCounted {
 

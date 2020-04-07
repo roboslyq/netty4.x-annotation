@@ -242,6 +242,11 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         return TimeUnit.NANOSECONDS.toMillis(allIdleTimeNanos);
     }
 
+    /**
+     * 添加Handler
+     * @param ctx
+     * @throws Exception
+     */
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
@@ -259,6 +264,11 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         destroy();
     }
 
+    /**
+     * Channel注册
+     * @param ctx
+     * @throws Exception
+     */
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
         // Initialize early if channel is active already.
@@ -268,6 +278,11 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         super.channelRegistered(ctx);
     }
 
+    /**
+     * 当Channel连接完成时
+     * @param ctx
+     * @throws Exception
+     */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         // This method will be invoked only if this handler was added
@@ -311,6 +326,10 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         }
     }
 
+    /**
+     * 初始化 IdleStateHandler
+     * @param ctx
+     */
     private void initialize(ChannelHandlerContext ctx) {
         // Avoid the case where destroy() is called before scheduling timeouts.
         // See: https://github.com/netty/netty/issues/143
@@ -324,14 +343,17 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         initOutputChanged(ctx);
 
         lastReadTime = lastWriteTime = ticksInNanos();
+        // 创建读事件心跳任务
         if (readerIdleTimeNanos > 0) {
             readerIdleTimeout = schedule(ctx, new ReaderIdleTimeoutTask(ctx),
                     readerIdleTimeNanos, TimeUnit.NANOSECONDS);
         }
+        // 创建写事件心跳任务
         if (writerIdleTimeNanos > 0) {
             writerIdleTimeout = schedule(ctx, new WriterIdleTimeoutTask(ctx),
                     writerIdleTimeNanos, TimeUnit.NANOSECONDS);
         }
+        // 创建读或写事件心跳任务
         if (allIdleTimeNanos > 0) {
             allIdleTimeout = schedule(ctx, new AllIdleTimeoutTask(ctx),
                     allIdleTimeNanos, TimeUnit.NANOSECONDS);
@@ -465,6 +487,9 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         return false;
     }
 
+    /**
+     * 超时任务抽象
+     */
     private abstract static class AbstractIdleTask implements Runnable {
 
         private final ChannelHandlerContext ctx;
@@ -485,6 +510,9 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         protected abstract void run(ChannelHandlerContext ctx);
     }
 
+    /**
+     * 读事件检测
+     */
     private final class ReaderIdleTimeoutTask extends AbstractIdleTask {
 
         ReaderIdleTimeoutTask(ChannelHandlerContext ctx) {
@@ -497,7 +525,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
             if (!reading) {
                 nextDelay -= ticksInNanos() - lastReadTime;
             }
-
+            // 如果已经超时，启动一个新线程对超时事件进行通知
             if (nextDelay <= 0) {
                 // Reader is idle - set a new timeout and notify the callback.
                 readerIdleTimeout = schedule(ctx, this, readerIdleTimeNanos, TimeUnit.NANOSECONDS);
@@ -507,6 +535,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
 
                 try {
                     IdleStateEvent event = newIdleStateEvent(IdleState.READER_IDLE, first);
+                    // 触发fireUserEventTriggered事件.
                     channelIdle(ctx, event);
                 } catch (Throwable t) {
                     ctx.fireExceptionCaught(t);
@@ -518,6 +547,9 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         }
     }
 
+    /**
+     * 写事件检测
+     */
     private final class WriterIdleTimeoutTask extends AbstractIdleTask {
 
         WriterIdleTimeoutTask(ChannelHandlerContext ctx) {
@@ -553,6 +585,9 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         }
     }
 
+    /**
+     * 读和写超时任务
+     */
     private final class AllIdleTimeoutTask extends AbstractIdleTask {
 
         AllIdleTimeoutTask(ChannelHandlerContext ctx) {

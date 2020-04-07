@@ -51,6 +51,10 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         return ScheduledFutureTask.nanoTime();
     }
 
+    /**
+     * 任务队列添加新任务
+     * @return
+     */
     PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue() {
         if (scheduledTaskQueue == null) {
             scheduledTaskQueue = new DefaultPriorityQueue<ScheduledFutureTask<?>>(
@@ -143,6 +147,13 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         return scheduledTask != null && scheduledTask.deadlineNanos() <= nanoTime();
     }
 
+    /**
+     * 添加定时任务
+     * @param command   需要执行的任务
+     * @param delay 延迟时间
+     * @param unit  时间单位
+     * @return
+     */
     @Override
     public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
         ObjectUtil.checkNotNull(command, "command");
@@ -151,7 +162,7 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
             delay = 0;
         }
         validateScheduled0(delay, unit);
-
+        // 创建计划任务
         return schedule(new ScheduledFutureTask<Void>(
                 this, command, null, ScheduledFutureTask.deadlineNanos(unit.toNanos(delay))));
     }

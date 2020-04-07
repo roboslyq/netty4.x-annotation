@@ -30,6 +30,7 @@ package io.netty.util.internal.logging;
  * which were loaded after the default factory is changed.  Therefore,
  * {@link #setDefaultFactory(InternalLoggerFactory)} should be called as early
  * as possible and shouldn't be called more than once.
+ * 日志记录器工厂
  */
 public abstract class InternalLoggerFactory {
 
