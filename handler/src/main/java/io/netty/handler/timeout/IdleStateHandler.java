@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Triggers an {@link IdleStateEvent} when a {@link Channel} has not performed
  * read, write, or both operation for a while.
- *
+ * Netty的心跳检查机制实现
  * <h3>Supported idle states</h3>
  * <table border="1">
  * <tr>
@@ -150,8 +150,11 @@ public class IdleStateHandler extends ChannelDuplexHandler {
      *        the specified period of time.  Specify {@code 0} to disable.
      */
     public IdleStateHandler(
+            // 读空闲事件触发时间间隔(即N秒后没有读，则触发相应事件)
             int readerIdleTimeSeconds,
+            // 写空闲事件触发时间间隔(即N秒后没有写，则触发相应事件)
             int writerIdleTimeSeconds,
+            // 读或写空闲事件触发时间间隔(即N秒后没有读或写，则触发相应事件)
             int allIdleTimeSeconds) {
 
         this(readerIdleTimeSeconds, writerIdleTimeSeconds, allIdleTimeSeconds,

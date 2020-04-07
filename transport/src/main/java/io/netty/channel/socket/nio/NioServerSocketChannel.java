@@ -156,12 +156,20 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         javaChannel().close();
     }
 
+    /**
+     * 读取消息
+     * @param buf
+     * @return
+     * @throws Exception
+     */
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
+        // 获取当前客户端与服务端的连接： SocketChannel
         SocketChannel ch = SocketUtils.accept(javaChannel());
 
         try {
             if (ch != null) {
+                // 使用Netty的NioSocketChannel包装 JDK 原生的SocketChannel。从而实现Netty与JDK 对接
                 buf.add(new NioSocketChannel(this, ch));
                 return 1;
             }

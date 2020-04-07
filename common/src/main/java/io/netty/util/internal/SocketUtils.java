@@ -39,6 +39,7 @@ import java.util.Enumeration;
  * {@link SecurityManager} to restrict {@link SocketPermission} to their application. By asserting that these
  * operations are privileged, the operations can proceed even if some code in the calling chain lacks the appropriate
  * {@link SocketPermission}.
+ * Socket操作工具类
  */
 public final class SocketUtils {
 
@@ -102,11 +103,19 @@ public final class SocketUtils {
         }
     }
 
+    /**
+     * ACCEPT事件处理
+     * @param serverSocketChannel
+     * @return
+     * @throws IOException
+     */
     public static SocketChannel accept(final ServerSocketChannel serverSocketChannel) throws IOException {
         try {
+            // Java JDK的权限检查，返回效果可以等同于没有这段代码包装。
             return AccessController.doPrivileged(new PrivilegedExceptionAction<SocketChannel>() {
                 @Override
                 public SocketChannel run() throws IOException {
+                    //  返回SocketChannel对应，客户端与服务端连接建议完成。
                     return serverSocketChannel.accept();
                 }
             });

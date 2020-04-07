@@ -43,6 +43,10 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
  * The default {@link ChannelPipeline} implementation.  It is usually created
  * by a {@link Channel} implementation when the {@link Channel} is created.
  * 默认的ChannelPipeline实现，在Channel的构造函数中，会实例化ChannelPipeline。
+ *
+ *  读的时候是 从 ChannelPipeline 链表的 head 节点开始处理。
+ *  写的时候是从 ChannelPipeline 的 tail 节点开始处理。
+
  */
 public class DefaultChannelPipeline implements ChannelPipeline {
 
@@ -64,10 +68,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                     DefaultChannelPipeline.class, MessageSizeEstimator.Handle.class, "estimatorHandle");
     /**
      * 保存ChannelHandlerConext链中的头节点：对应HeadContext
+     * 读数据时，起始节点
      */
     final AbstractChannelHandlerContext head;
     /**
      * 保存ChannelHandlerConctext链中的尾部节点：对应TailContext
+     * 写数据时，起始节点
      */
     final AbstractChannelHandlerContext tail;
 
@@ -219,8 +225,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      * @return
      */
     @Override
-    public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
-        // ChannelHandler的上下文环境
+    public final ChannelPipeline  (EventExecutorGroup group, String name, ChannelHandler handler) {
+        // ChannelHandler的上下文环境，通过上下文构建具体的连接
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
             checkMultiplicity(handler);

@@ -789,6 +789,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * @param ch
      */
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
+        // 若是NioServerSocketChannel，默认是unsafe = NioMessageUnsafe。在NioServerSocketChannel父类构造函数中调用newUnsafe()实现.
+        // 而NioServerSocketChannel 重写了Unsafe方法
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
         if (!k.isValid()) {//当前Channel不可用时
             final EventLoop eventLoop;

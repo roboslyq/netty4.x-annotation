@@ -52,7 +52,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      */
     private final ChannelId id;
     /**
-     * Unsafe实例<Channel接口辅助接口>，Netty自己封装了一些认为觉得不安全的操作。此Unsafe不是JDK中的UNsafe。
+     * Unsafe实例<Channel接口辅助接口>，Netty自己封装了一些认为觉得不安全的操作。此Unsafe不是JDK中的Unsafe。
+     *
      */
     private final Unsafe unsafe;
     /**
@@ -93,7 +94,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     protected AbstractChannel(Channel parent) {
         this.parent = parent;
         id = newId();
+        // 若是NioServerSocketChannel，默认是NioMessageUnsafe。
         unsafe = newUnsafe();
+        // 创建新的Pipelien，因此每个Channel的Pipeline都是新的，互不相干。
         pipeline = newChannelPipeline();
     }
 
@@ -606,8 +609,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);
-                // pipeline发送Channel注册事件
+                // 核心方法 ==========>pipeline发送Channel注册事件，完成pipeline初始化
                 pipeline.fireChannelRegistered();
+
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
                 if (isActive()) {

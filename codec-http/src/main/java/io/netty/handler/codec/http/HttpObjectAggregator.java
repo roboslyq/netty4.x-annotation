@@ -78,7 +78,7 @@ import static io.netty.handler.codec.http.HttpUtil.getContentLength;
  *     </tr>
  *   </tbody>
  * </table>
- *
+ * Http消息聚合，返回一个完整的FullHttpRequest或FullHttpResponse。因为Netty的消息都是分块的(chunked)，一个消息可能被拆成多块。
  * @see FullHttpRequest
  * @see FullHttpResponse
  * @see HttpResponseDecoder
