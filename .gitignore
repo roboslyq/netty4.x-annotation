@@ -41,4 +41,3 @@ mainframer
 # exclude docker-sync stuff
 .docker-sync
 */.docker-sync
-/common/src/main/java/io/netty/util/concurrent/SingleThreadEventExecutor.java
