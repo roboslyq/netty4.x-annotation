@@ -42,11 +42,8 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 /**
  * The default {@link ChannelPipeline} implementation.  It is usually created
  * by a {@link Channel} implementation when the {@link Channel} is created.
- * 默认的ChannelPipeline实现，在Channel的构造函数中，会实例化ChannelPipeline。
- *
- *  读的时候是 从 ChannelPipeline 链表的 head 节点开始处理。
- *  写的时候是从 ChannelPipeline 的 tail 节点开始处理。
-
+ * 1、默认的ChannelPipeline实现，在Channel的构造函数中，会实例化ChannelPipeline。
+ * 2、因为是链表结构，所以很多操作的时间复杂度是O(n),但真实的情况是Handler数量很少<顶多几个或者几十个>
  */
 public class DefaultChannelPipeline implements ChannelPipeline {
 
@@ -58,7 +55,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private static final String TAIL_NAME = generateName0(TailContext.class);
 
     /**
-     * FastThreadLocal 对JDK的ThreadLocal进行优化包装
+     * 1、FastThreadLocal 对JDK的ThreadLocal进行优化包装
+     * 2、缓存了ChannelHandler的名称
      */
     private static final FastThreadLocal<Map<Class<?>, String>> nameCaches =
             new FastThreadLocal<Map<Class<?>, String>>() {
@@ -68,6 +66,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     };
 
+    /**
+     * Java JDK的原子属性更新器AtomicReferenceFieldUpdater。
+     * JDK的原子属性更新器AtomicReferenceFieldUpdater是基于反射的工具类，用来将指定类型的指定的volatile引用字段进行原子更新，对应的原子引用字段不能是private的。
+     * 通常一个类volatile成员属性获取值、设定为某个值两个操作时非原子的，若想将其变为原子的，则可通过AtomicReferenceFieldUpdater来实现。
+     */
     private static final AtomicReferenceFieldUpdater<DefaultChannelPipeline, MessageSizeEstimator.Handle> ESTIMATOR =
             AtomicReferenceFieldUpdater.newUpdater(
                     DefaultChannelPipeline.class, MessageSizeEstimator.Handle.class, "estimatorHandle");
@@ -82,7 +85,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      */
     final AbstractChannelHandlerContext tail;
     /**
-     * 当前pipeline对应
+     * 当前pipeline对应人Channel。对应关系为1：1。并且每个Channel的pipeline不一样。
      */
     private final Channel channel;
 
@@ -218,6 +221,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * A-->B-->C,添加一个D元素后为
+     * A-->D-->B-->C
+     * @param newCtx
+     */
     private void addFirst0(AbstractChannelHandlerContext newCtx) {
         AbstractChannelHandlerContext nextCtx = head.next;
         newCtx.prev = head;
@@ -336,10 +344,18 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         ctx.prev = newCtx;
     }
 
+    /**
+     * 检查Handler名称是否重复，如果为空生成handler对应的名称
+     * @param name
+     * @param handler
+     * @return
+     */
     private String filterName(String name, ChannelHandler handler) {
+        //如果为空，自动生成名称
         if (name == null) {
             return generateName(handler);
         }
+        //检查是否重复
         checkDuplicateName(name);
         return name;
     }
@@ -459,20 +475,32 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 自动生成ChannelHandler名称
+     * @param handler
+     * @return
+     */
     private String generateName(ChannelHandler handler) {
+        //检查缓存
         Map<Class<?>, String> cache = nameCaches.get();
         Class<?> handlerType = handler.getClass();
         String name = cache.get(handlerType);
+        // 如果缓存为空
         if (name == null) {
+            //生成一个新的名称并放入缓存
             name = generateName0(handlerType);
             cache.put(handlerType, name);
         }
 
         // It's not very likely for a user to put more than one handler of the same type, but make sure to avoid
         // any name conflicts.  Note that we don't cache the names generated here.
+        // 如果已经包含了这个名称
         if (context0(name) != null) {
+            // 删除默认名称下的 xxx#0 的最末尾的0，得到xxx#.
             String baseName = name.substring(0, name.length() - 1); // Strip the trailing '0'.
+
             for (int i = 1;; i ++) {
+                // xxx# + i = xxx#i
                 String newName = baseName + i;
                 if (context0(newName) == null) {
                     name = newName;
@@ -483,7 +511,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return name;
     }
 
+    /**
+     * 生成默认的Handler名称
+     * @param handlerType
+     * @return
+     */
     private static String generateName0(Class<?> handlerType) {
+        //取“类名 + #0”
         return StringUtil.simpleClassName(handlerType) + "#0";
     }
 
@@ -524,6 +558,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return (T) remove((AbstractChannelHandlerContext) ctx).handler();
     }
 
+    /**
+     * 移除一个ChannelHandler
+     * @param ctx
+     * @return
+     */
     private AbstractChannelHandlerContext remove(final AbstractChannelHandlerContext ctx) {
         assert ctx != head && ctx != tail;
 
@@ -533,6 +572,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             // If the registered is false it means that the channel was not registered on an eventloop yet.
             // In this case we remove the context from the pipeline and add a task that will call
             // ChannelHandler.handlerRemoved(...) once the channel is registered.
+            // 如果channel没有注册，则添加延时任务删除，如果已经注册则需要触发 相应的事件。
             if (!registered) {
                 callHandlerCallbackLater(ctx, false);
                 return ctx;
@@ -719,9 +759,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     /**
-     * 构建完整的channelPipeline
+     * 1、方法名称：invokeHandlerAddedIfNeeded(如果需要，就调用Handler的added方法),其实从这个名称就可以看出，这是一个添加handler的方法。
+     * 也就是Channel创建时，初始化并构建完整的channelPipeline。
      */
     final void invokeHandlerAddedIfNeeded() {
+
         assert channel.eventLoop().inEventLoop();
         if (firstRegistration) {
             firstRegistration = false;
@@ -731,6 +773,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 获取head中对应的ChannelHandler
+     * 注意，此Head不是ChannelPipeline中真正的head.因为ChannelPipeline中真正的Head和tail分别是HeadContext和TailContext.
+     * 这两个已经固定好了，所以此处first()是指head.next对应的ChannelHandler
+     * @return
+     */
     @Override
     public final ChannelHandler first() {
         ChannelHandlerContext first = firstContext();
@@ -748,7 +796,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
         return head.next;
     }
-
+    /**
+     * 获取last中对应的ChannelHandler
+     * 注意，此Head不是ChannelPipeline中真正的last.因为ChannelPipeline中真正的Head和tail分别是HeadContext和TailContext.
+     * 这两个已经固定好了，所以此处last()是指head.next对应的ChannelHandler
+     * @return
+     */
     @Override
     public final ChannelHandler last() {
         AbstractChannelHandlerContext last = tail.prev;
@@ -767,6 +820,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return last;
     }
 
+    /**
+     * 根据名称获取对应的Channel，时间复杂度O(n)
+     * @param name
+     * @return
+     */
     @Override
     public final ChannelHandler get(String name) {
         ChannelHandlerContext ctx = context(name);
@@ -818,6 +876,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 获取指定类型的具体ChannelHandler
+     * @param handlerType
+     * @return
+     */
     @Override
     public final ChannelHandlerContext context(Class<? extends ChannelHandler> handlerType) {
         if (handlerType == null) {
@@ -825,10 +888,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
 
         AbstractChannelHandlerContext ctx = head.next;
+        //循环遍列
         for (;;) {
+            //没有更多元素，直接返回空
             if (ctx == null) {
                 return null;
             }
+            // 找到对应类型元素
             if (handlerType.isAssignableFrom(ctx.handler().getClass())) {
                 return ctx;
             }
@@ -836,6 +902,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 遍列所有元素名称
+     * @return
+     */
     @Override
     public final List<String> names() {
         List<String> list = new ArrayList<String>();
@@ -1161,6 +1231,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     *
+     * @param name
+     * @return
+     */
     private AbstractChannelHandlerContext context0(String name) {
         AbstractChannelHandlerContext context = head.next;
         while (context != tail) {
@@ -1554,6 +1629,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     *
+     */
     private abstract static class PendingHandlerCallback implements Runnable {
         final AbstractChannelHandlerContext ctx;
         PendingHandlerCallback next;
@@ -1600,6 +1678,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     *
+     */
     private final class PendingHandlerRemovedTask extends PendingHandlerCallback {
 
         PendingHandlerRemovedTask(AbstractChannelHandlerContext ctx) {

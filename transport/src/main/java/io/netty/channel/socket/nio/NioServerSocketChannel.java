@@ -144,7 +144,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     /**
      * 绑定端口
      * @param localAddress
-     * @throws Exception
+     * @throws Exception 了
      */
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {

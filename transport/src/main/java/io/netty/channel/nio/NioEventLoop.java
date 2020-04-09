@@ -61,7 +61,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *      创建它们的主要原因是：当I/O线程和用户线程同时操作网络资源时，为了防止并发操作导致的锁竞争，
  *      将用户线程的操作封装成Task放入消息队列中，由I/O线程负责执行，这样就实现了局部无锁化。
  *   2)定时任务：
- *      调用NioEventLoop的schedule（Runnable command,long delay,TimeUnit unit）方法实现。
+ *      调用NioEventLoop的schedule（Runnable command,long delay,TimeUnit unit）方法execute(实现。
 
  */
 public final class NioEventLoop extends SingleThreadEventLoop {

@@ -19,6 +19,7 @@ import io.netty.util.internal.UnstableApi;
 
 /**
  * Factory that creates new {@link EventExecutorChooser}s.
+ * EventExecutorChooser的工厂类，具体实现为DefaultEventExecutorChooserFactory
  */
 @UnstableApi
 public interface EventExecutorChooserFactory {

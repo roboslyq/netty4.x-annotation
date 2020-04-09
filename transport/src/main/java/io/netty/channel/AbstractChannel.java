@@ -71,11 +71,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      */
     private volatile SocketAddress remoteAddress;
     /**
-     * 当前Channel注册的事件处理线程池
+     * 当前Channel注册的事件处理线程
      */
     private volatile EventLoop eventLoop;
     /**
-     *
+     * 当前Channel是否已经注册到EventLoop上
      */
     private volatile boolean registered;
     private boolean closeInitiated;
@@ -87,7 +87,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     /**
      * Creates a new instance.
-     *
+     * 构造函数:创建一个新的实例
      * @param parent
      *        the parent of this channel. {@code null} if there's no parent.
      */
@@ -561,14 +561,14 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             AbstractChannel.this.eventLoop = eventLoop;
-            //正常情况为false<启动时，在主线程中>
+            //正常情况为false<启动时，在主线程(main)中>
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
                 try {
-                    //eventLoop = NioEventLoop : 注册核心方法
                     /*
-                     * 调用栈如下：
+                     * 注册核心方法
+                     * eventLoop = NioEventLoop ,所以最终eventLoop.execute()调用栈如下：
                      *  SingleThreadEventExecutor#execute()
                      *     --> SingleThreadEventExecutor#startThread()
                      */

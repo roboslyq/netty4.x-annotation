@@ -81,12 +81,16 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                     SingleThreadEventExecutor.class, ThreadProperties.class, "threadProperties");
 
     private final Queue<Runnable> taskQueue;
-
+    /**
+     * 每个SingleThreadEventExecutor（例如EventLoop）都对应一个具体的线程。一旦绑定，不可以改变
+     */
     private volatile Thread thread;
     @SuppressWarnings("unused")
     private volatile ThreadProperties threadProperties;
     /**
      * 默认为ThreadExecutorMap.apply(executor, this),在构造函数中完成相应的构造。
+     * ==>Executor使用线程池来管理线程，可以重复利用已经创建出来的线程而不是每次都必须新创建线程，节省了一部分的开销。
+     * 线程池也可以很方便的管理线程的大小和当前在执行的线程数量。
      */
     private final Executor executor;
     private volatile boolean interrupted;
@@ -773,8 +777,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     /**
-     * 运行指定的任务
-     * 在AbstractChannel中的 register(EventLoop eventLoop, final ChannelPromise promise)方法引用：
+     * 1、启动线程并且将task添加到阻塞队列中，启动的线程会从队列中取出task并且执行task
+     * 2、在AbstractChannel中的 register(EventLoop eventLoop, final ChannelPromise promise)方法引用：
      *  //eventLoop = NioEventLoop : 注册核心方法
      *                     eventLoop.execute(new Runnable() {
      *                         @Override
@@ -786,10 +790,11 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      */
     @Override
     public void execute(Runnable task) {
+        //task = AbstractChannel$AbstractUnsafe
         if (task == null) {
             throw new NullPointerException("task");
         }
-
+        //此处启动时，默认为false,因为启动时是在主线络 Main中。
         boolean inEventLoop = inEventLoop();
         //添加到任务队列
         addTask(task);
@@ -899,7 +904,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private static final long SCHEDULE_PURGE_INTERVAL = TimeUnit.SECONDS.toNanos(1);
 
     /**
-     * 启动线程
+     * 调用doStartThread，执行executor.execute接口
      */
     private void startThread() {
         if (state == ST_NOT_STARTED) {
@@ -948,9 +953,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private void doStartThread() {
         assert thread == null;
         /*
+         * 当前还在实例NioEventLoop的父类SingleThreadEventExecutor中：
+         *
          *  executor = ThreadExecutorMap
          *      --> executor = ThreadPerTaskExecutor
          *      --> eventExecutor = NioEventLoop
+         *
+         *  ThreadPerTaskExecutor#execute该方法会调用start方法，将线程激活
          */
         executor.execute(new Runnable() {
             @Override
@@ -959,15 +968,14 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 if (interrupted) {
                     thread.interrupt();
                 }
-
                 boolean success = false;
                 updateLastExecutionTime();
                 try {
-                    //重点: SingleThreadEventExecutor.this = NioEventLoop
-                    /*
+                    /*======>核心方法，重点:
+                    SingleThreadEventExecutor.this = NioEventLoop，所以 SingleThreadEventExecutor.this.run()最终调用的是NioEventLoop+run()
+
                     “类名.this”的语法在Java语言中叫做“qualified this”。相关规定在这里：Chapter 15. Expressions - Qualified this
                         这个语法的主要用途是：在内部类的方法中，要指定某个嵌套层次的外围类的“this”引用时，使用“外围类名.this”语法。例如说：
-
                         class Foo {
                           class Bar {
                             Foo getFoo() {
@@ -975,10 +983,10 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                             }
                           }
                         }
-
                         在Foo.Bar类中的getFoo()方法中，如果直接写“this”的话所指的是这个Foo.Bar类的实例，而如果要指定外围的Foo类的this实例的话，这里就得写成Foo.this。
                         特别的，如果在上例的getFoo()方法中写Bar.this的话，作用就跟直接写this一样，指定的是当前的Foo.Bar类实例。
                      */
+                    // 因为这是一个新的线程，所以想要调用NioEventLoop引用，只能通过SingleThreadEventExecutor.this
                     SingleThreadEventExecutor.this.run();
                     success = true;
                 } catch (Throwable t) {
