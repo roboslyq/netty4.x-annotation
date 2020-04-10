@@ -41,6 +41,11 @@ class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
         return buf;
     }
 
+    /**
+     * 构造函数
+     * @param recyclerHandle
+     * @param maxCapacity
+     */
     PooledHeapByteBuf(Recycler.Handle<? extends PooledHeapByteBuf> recyclerHandle, int maxCapacity) {
         super(recyclerHandle, maxCapacity);
     }

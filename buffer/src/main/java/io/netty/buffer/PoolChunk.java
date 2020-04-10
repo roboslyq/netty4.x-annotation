@@ -102,6 +102,7 @@ import java.util.Deque;
  *
  * memoryMap[id]= depth_of_id  is defined above
  * depthMap[id]= x  indicates that the first node which is free to be allocated is at depth x (from root)
+ * Netty中内存管理的数据一块，一个Chunk块由多个Page(PoolSubpage)组成
  */
 final class PoolChunk<T> implements PoolChunkMetric {
 
@@ -111,6 +112,17 @@ final class PoolChunk<T> implements PoolChunkMetric {
     final T memory;
     final boolean unpooled;
     final int offset;
+    /**
+     * 为了能够简单的操作内存，必须保证每次分配到的内存时连续的。Netty中底层的内存分配和回收管理主要由PoolChunk实现，
+     * 其内部维护一棵平衡二叉树memoryMap，所有子节点管理的内存也属于其父节点.
+     * poolChunk默认由2048个page组成，一个page默认大小为8k，图中节点的值为在数组memoryMap的下标。
+     * 1、如果需要分配大小8k的内存，则只需要在第11层，找到第一个可用节点即可。
+     * 2、如果需要分配大小16k的内存，则只需要在第10层，找到第一个可用节点即可。
+     * 3、如果节点1024存在一个已经被分配的子节点2048，则该节点不能被分配，如需要分配大小16k的内存，这个时候节点2048已被分配，节点2049未被分配，就不能直接分配节点1024，因为该节点目前只剩下8k内存。
+     *
+     * poolChunk内部会保证每次分配内存大小为8K*(2n)，为了分配一个大小为chunkSize/(2k)的节点，需要在深度为k的层从左开始匹配节点，
+     *
+     */
     private final byte[] memoryMap;
     private final byte[] depthMap;
     private final PoolSubpage<T>[] subpages;
@@ -159,6 +171,12 @@ final class PoolChunk<T> implements PoolChunkMetric {
         maxSubpageAllocs = 1 << maxOrder;
 
         // Generate the memory map.
+        // memoryMap初始化：
+//        memoryMap数组中每个位置保存的是该节点所在的层数，有什么作用？对于节点512，其层数是9，则：
+//        1、如果memoryMap[512] = 9，则表示其本身到下面所有的子节点都可以被分配；
+//        2、如果memoryMap[512] = 10， 则表示节点512下有子节点已经分配过，则该节点不能直接被分配，而其子节点中的第10层还存在未分配的节点;
+//        3、如果memoryMap[512] = 12 (即总层数 + 1）, 可分配的深度已经大于总层数, 则表示该节点下的所有子节点都已经被分配。
+
         memoryMap = new byte[maxSubpageAllocs << 1];
         depthMap = new byte[memoryMap.length];
         int memoryMapIndex = 1;
@@ -222,11 +240,20 @@ final class PoolChunk<T> implements PoolChunkMetric {
         return 100 - freePercentage;
     }
 
+    /**
+     * 申请一段内存
+     * @param buf
+     * @param reqCapacity
+     * @param normCapacity
+     * @return
+     */
     boolean allocate(PooledByteBuf<T> buf, int reqCapacity, int normCapacity) {
         final long handle;
+//        1、当需要分配的内存大于pageSize时，使用allocateRun实现内存分配。
         if ((normCapacity & subpageOverflowMask) != 0) { // >= pageSize
             handle =  allocateRun(normCapacity);
         } else {
+//        2、否则使用方法allocateSubpage分配内存，在allocateSubpage实现中，会把一个page分割成多段，进行内存分配。
             handle = allocateSubpage(normCapacity);
         }
 
@@ -286,7 +313,11 @@ final class PoolChunk<T> implements PoolChunkMetric {
     /**
      * Algorithm to allocate an index in memoryMap when we query for a free node
      * at depth d
-     *
+     * 实现在二叉树中进行节点匹配：
+     * 1、从根节点开始遍历，如果当前节点的val<d，则通过id <<=1匹配下一层；
+     * 2、如果val > d，则表示存在子节点被分配的情况，而且剩余节点的内存大小不够，此时需要在兄弟节点上继续查找；
+     * 3、分配成功的节点需要标记为不可用，防止被再次分配，在memoryMap对应位置更新为12；
+     * 4、分配节点完成后，其父节点的状态也需要更新，并可能引起更上一层父节点的更新，实现如下：
      * @param d depth
      * @return index in memoryMap
      */
@@ -315,7 +346,10 @@ final class PoolChunk<T> implements PoolChunkMetric {
 
     /**
      * Allocate a run of pages (>=1)
-     *
+     * 1、normCapacity是处理过的值，如申请大小为1000的内存，实际申请的内存大小为1024。
+     * 2、d = maxOrder - (log2(normCapacity) - pageShifts) 可以确定需要在二叉树的d层开始节点匹配。
+     * 其中pageShifts默认值为13，为何是13？因为只有当申请内存大小大于2^13（8192）时才会使用方法allocateRun分配内存。
+     * 3、方法allocateNode实现在二叉树中进行节点匹配，具体实现如下：
      * @param normCapacity normalized capacity
      * @return index in memoryMap
      */

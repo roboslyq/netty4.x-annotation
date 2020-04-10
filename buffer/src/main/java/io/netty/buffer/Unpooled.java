@@ -73,21 +73,42 @@ import java.util.Arrays;
  * to use this operation to merge multiple buffers into one buffer.
  */
 public final class Unpooled {
-
+    /**
+     * ByteBuf分配器：创建ByteBuf实例
+     */
     private static final ByteBufAllocator ALLOC = UnpooledByteBufAllocator.DEFAULT;
 
     /**
+     * 大端模式Big-Endian就是高位字节排放在内存的低地址端，低位字节排放在内存的高地址端。
+     * 小端模式Little-Endian就是低位字节排放在内存的低地址端，高位字节排放在内存的高地址端。
+     *
+     * 大端模式 ：符号位的判定固定为第一个字节，容易判断正负。
+     * 小端模式 ：强制转换数据不需要调整字节内容。
+     *
+     * 采用大端方式进行数据存放符合人类的正常思维，而采用小端方式进行数据存放利于计算机处理。
+     *
+     * 在计算机系统中，我们是以字节为单位的，每个地址单元都对应着一个字节，一个字节为8bit。
+     * 但是在C语言中除了8bit的char之外，还有16bit的short型，32bit的long型（要看具体的编译器）。
+     * 另外，对于位数大于8位的处理器，例如16位或者32位的处理器，由于寄存器宽度大于一个字节，那么必然存在着一个如果将多个字节安排的问题。
+     * 因此就导致了大端存储模式和小端存储模式。
+     * 例如：
+     *     一个16bit的short型x，在内存中的地址为0x0010，x的值为0x1122。那么0x11为数据高字节，0x22为数据低字节。
+     *     对于大端模式，就将0x11放在内存低地址中，即0x0010中；0x22放在内存高地址中，即0x0011中。
+     *     小端模式，就将0x11放在内存高地址中，即0x0011中；0x22放在内存低地址中，即0x0010中。
+     * 我们常用的X86结构是小端模式，而KEIL C51则为大端模式。很多的ARM，DSP都为小端模式。有些ARM处理器还可以由硬件来选择是大端模式还是小端模式。
      * Big endian byte order.
      */
     public static final ByteOrder BIG_ENDIAN = ByteOrder.BIG_ENDIAN;
 
     /**
      * Little endian byte order.
+     * 小端模式
      */
     public static final ByteOrder LITTLE_ENDIAN = ByteOrder.LITTLE_ENDIAN;
 
     /**
      * A buffer whose capacity is {@code 0}.
+     * 空Buffer
      */
     public static final ByteBuf EMPTY_BUFFER = ALLOC.buffer(0, 0);
 
@@ -96,8 +117,9 @@ public final class Unpooled {
     }
 
     /**
-     * Creates a new big-endian Java heap buffer with reasonably small initial capacity, which
+     * Creates a new big-endian Java heap buffer with reasonably(合理的) small initial capacity, which
      * expands its capacity boundlessly on demand.
+     * 创建一个大端模式的堆缓存，使用默认大小，可以无限扩容
      */
     public static ByteBuf buffer() {
         return ALLOC.heapBuffer();
@@ -106,6 +128,9 @@ public final class Unpooled {
     /**
      * Creates a new big-endian direct buffer with reasonably small initial capacity, which
      * expands its capacity boundlessly on demand.
+     * 直接内存，底层实现是基于JDK 的 DirectByteBuffer.
+     * 而DirectByteBuffer是通过Unsafe来实现堆外内存 unsafe.allocateMemory(size)分配内存
+     *
      */
     public static ByteBuf directBuffer() {
         return ALLOC.directBuffer();

@@ -16,6 +16,10 @@
 
 package io.netty.buffer;
 
+/**
+ * Netty内存管理的最小单元。多个Page构成一个Chunk。
+ * @param <T>
+ */
 final class PoolSubpage<T> implements PoolSubpageMetric {
 
     final PoolChunk<T> chunk;

@@ -27,6 +27,11 @@ import static java.lang.Math.*;
 
 import java.nio.ByteBuffer;
 
+/**
+ * PoolChunkList负责管理多个chunk的生命周期，在此基础上对内存分配进行进一步的优化。
+ * 每个PoolChunkList实例维护了一个PoolChunk链表，自身也形成一个链表
+ * @param <T>
+ */
 final class PoolChunkList<T> implements PoolChunkListMetric {
     private static final Iterator<PoolChunkMetric> EMPTY_METRICS = Collections.<PoolChunkMetric>emptyList().iterator();
     private final PoolArena<T> arena;
@@ -76,6 +81,15 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
         this.prevList = prevList;
     }
 
+    /**
+     * 随着chunk中page的不断分配和释放，会导致很多碎片内存段，大大增加了之后分配一段连续内存的失败率，针对这种情况，
+     * 可以把内存使用率较大的chunk放到PoolChunkList链表更后面。
+     * 假设poolChunkList中已经存在多个chunk。当分配完内存后，如果当前chunk的使用量超过maxUsage，则把该chunk从当前链表中删除，添加到下一个链表中。
+     * @param buf
+     * @param reqCapacity
+     * @param normCapacity
+     * @return
+     */
     boolean allocate(PooledByteBuf<T> buf, int reqCapacity, int normCapacity) {
         if (normCapacity > maxCapacity) {
             // Either this PoolChunkList is empty or the requested capacity is larger then the capacity which can
@@ -95,6 +109,16 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
         return false;
     }
 
+    /**
+     * 随便chunk中内存的释放，其内存使用率也会随着下降，当下降到minUsage时，该chunk会移动到前一个列表中
+     * 从poolChunkList的实现可以看出，每个chunkList的都有一个上下限：minUsage和maxUsage，两个相邻的chunkList，前一个的maxUsage和后一个的minUsage必须有一段交叉值进行缓冲，否则会出现某个chunk的usage处于临界值，而导致不停的在两个chunk间移动。
+     *
+     * 所以chunk的生命周期不会固定在某个chunkList中，随着内存的分配和释放，根据当前的内存使用率，在chunkList链表中前后移动
+     * @param chunk
+     * @param handle
+     * @param nioBuffer
+     * @return
+     */
     boolean free(PoolChunk<T> chunk, long handle, ByteBuffer nioBuffer) {
         chunk.free(handle, nioBuffer);
         if (chunk.usage() < minUsage) {

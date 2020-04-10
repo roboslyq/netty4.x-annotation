@@ -25,12 +25,14 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * The result of an asynchronous {@link Channel} I/O operation.
+ * Channel 的I/O异步操作的结果
  * <p>
  * All I/O operations in Netty are asynchronous.  It means any I/O calls will
  * return immediately with no guarantee that the requested I/O operation has
  * been completed at the end of the call.  Instead, you will be returned with
  * a {@link ChannelFuture} instance which gives you the information about the
  * result or status of the I/O operation.
+ * 在Netty中，所有的I/O操作都是异步的。所以使用ChannelFuture来获取I/O操作的结果或者状态。
  * <p>
  * A {@link ChannelFuture} is either <em>uncompleted</em> or <em>completed</em>.
  * When an I/O operation begins, a new future object is created.  The new future
@@ -40,6 +42,13 @@ import java.util.concurrent.TimeUnit;
  * marked as completed with more specific information, such as the cause of the
  * failure.  Please note that even failure and cancellation belong to the
  * completed state.
+ * ChannelFuture的状态主要有两种：
+ * Uncompleated 和 Completed.
+ * 其中，Uncompleted时， 只有一种情况:isDone() = false ， isSuccess() = false  isCancelled() = false    cause() = null
+ *      Completed就有很3种情况:
+ *              成功:isDone() = true  , isSuccess() = true
+ *              失败:isDone() = true  , cause() = non-null
+ *              取消:isDone() = true  , isCancelled() = true
  * <pre>
  *                                      +---------------------------+
  *                                      | Completed successfully    |
@@ -63,7 +72,8 @@ import java.util.concurrent.TimeUnit;
  * completed, wait for the completion, and retrieve the result of the I/O
  * operation. It also allows you to add {@link ChannelFutureListener}s so you
  * can get notified when the I/O operation is completed.
- *
+ * 有很多方法可以让你去判断I/O操作是否已经完成，或者等待结果，或者从I/O获取返回的结果。
+ * 当然，也可以添加回调函数 {@link ChannelFutureListener}。当I/O完成时，会回调这个函数。
  * <h3>Prefer {@link #addListener(GenericFutureListener)} to {@link #await()}</h3>
  *
  * It is recommended to prefer {@link #addListener(GenericFutureListener)} to

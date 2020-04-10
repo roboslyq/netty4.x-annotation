@@ -75,6 +75,13 @@ public final class SocketUtils {
         }
     }
 
+    /**
+     * 启动时,客户端往服务端发起连接:JDK
+     * @param socketChannel
+     * @param remoteAddress
+     * @return
+     * @throws IOException
+     */
     public static boolean connect(final SocketChannel socketChannel, final SocketAddress remoteAddress)
             throws IOException {
         try {
@@ -89,6 +96,12 @@ public final class SocketUtils {
         }
     }
 
+    /**
+     * 客户端绑定本地地址
+     * @param socketChannel
+     * @param address
+     * @throws IOException
+     */
     public static void bind(final SocketChannel socketChannel, final SocketAddress address) throws IOException {
         try {
             AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {

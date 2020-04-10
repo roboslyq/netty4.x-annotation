@@ -551,6 +551,13 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return connect(remoteAddress, null, promise);
     }
 
+    /**
+     * 客户端向服务器端发起连接
+     * @param remoteAddress
+     * @param localAddress
+     * @param promise
+     * @return
+     */
     @Override
     public ChannelFuture connect(
             final SocketAddress remoteAddress, final SocketAddress localAddress, final ChannelPromise promise) {
@@ -562,7 +569,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             // cancelled
             return promise;
         }
-
+        // 进入channelPipeline调用，参考服务端模式，最终会进入HeadContext中，然后HeadContext中持有Unsafe
+        // 再能过Unsafe中的invoeConnect()方法发起连接
         final AbstractChannelHandlerContext next = findContextOutbound(MASK_CONNECT);
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
@@ -578,6 +586,12 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return promise;
     }
 
+    /**
+     * 连接调用
+     * @param remoteAddress
+     * @param localAddress
+     * @param promise
+     */
     private void invokeConnect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
         if (invokeHandler()) {
             try {

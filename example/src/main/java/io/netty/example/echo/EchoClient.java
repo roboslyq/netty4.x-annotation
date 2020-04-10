@@ -52,8 +52,10 @@ public final class EchoClient {
         }
 
         // Configure the client.
+        // 设置客户端工作线程组
         EventLoopGroup group = new NioEventLoopGroup();
         try {
+            //
             Bootstrap b = new Bootstrap();
             b.group(group)
              .channel(NioSocketChannel.class)

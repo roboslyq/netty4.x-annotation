@@ -254,6 +254,12 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             return javaChannel();
         }
 
+        /**
+         * 客户端向服务端发起连接
+         * @param remoteAddress
+         * @param localAddress
+         * @param promise
+         */
         @Override
         public final void connect(
                 final SocketAddress remoteAddress, final SocketAddress localAddress, final ChannelPromise promise) {
@@ -268,13 +274,16 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 }
 
                 boolean wasActive = isActive();
+                //发起连接，返回true：连接成功  false:连接失败
                 if (doConnect(remoteAddress, localAddress)) {
+                    //连接成功
                     fulfillConnectPromise(promise, wasActive);
                 } else {
                     connectPromise = promise;
                     requestedRemoteAddress = remoteAddress;
 
                     // Schedule connect timeout.
+                    // 连接超时，发起定时任务重连
                     int connectTimeoutMillis = config().getConnectTimeoutMillis();
                     if (connectTimeoutMillis > 0) {
                         connectTimeoutFuture = eventLoop().schedule(new Runnable() {
@@ -308,7 +317,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 closeIfClosed();
             }
         }
-
+        /**
+         * 发起连接
+         */
         private void fulfillConnectPromise(ChannelPromise promise, boolean wasActive) {
             if (promise == null) {
                 // Closed via cancellation and the promise has been notified already.

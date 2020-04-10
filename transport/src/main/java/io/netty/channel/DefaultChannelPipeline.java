@@ -1153,6 +1153,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return tail.connect(remoteAddress, promise);
     }
 
+    /**
+     * 客户端向服务器端发起连接
+     * @param remoteAddress
+     * @param localAddress
+     * @param promise
+     * @return
+     */
     @Override
     public final ChannelFuture connect(
             SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
@@ -1516,6 +1523,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             unsafe.bind(localAddress, promise);
         }
 
+        /**
+         * 客户端发起连接
+         * @param ctx               the {@link ChannelHandlerContext} for which the connect operation is made
+         * @param remoteAddress     the {@link SocketAddress} to which it should connect
+         * @param localAddress      the {@link SocketAddress} which is used as source on connect
+         * @param promise           the {@link ChannelPromise} to notify once the operation completes
+         */
         @Override
         public void connect(
                 ChannelHandlerContext ctx,

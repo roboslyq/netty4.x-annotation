@@ -154,6 +154,7 @@
       </plugin>
 
       <!-- Generate the primitive collections from the template files. -->
+      <!-- Groovy插件,在编译时,根据template生成具体的collections包下的相关类-->
       <plugin>
         <groupId>org.codehaus.gmaven</groupId>
         <artifactId>groovy-maven-plugin</artifactId>

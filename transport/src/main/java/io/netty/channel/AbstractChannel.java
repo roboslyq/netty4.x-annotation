@@ -337,6 +337,13 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return pipeline.connect(remoteAddress, promise);
     }
 
+    /**
+     * 客户端向服务器端发起连接
+     * @param remoteAddress
+     * @param localAddress
+     * @param promise
+     * @return
+     */
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
         return pipeline.connect(remoteAddress, localAddress, promise);

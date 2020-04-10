@@ -194,6 +194,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     }
 
     // Unnecessary stuff
+    // 服务端不会主动发起连接，所以不需要实现此方法，抛出异常。
     @Override
     protected boolean doConnect(
             SocketAddress remoteAddress, SocketAddress localAddress) throws Exception {

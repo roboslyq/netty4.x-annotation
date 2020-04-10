@@ -23,6 +23,11 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**
+ * 使用了对象池化技术的ByteBuf,通常有4种实现:
+ * PooledHeapByteBuf
+ * PooledHeapDirectByteBuf
+ * PooledUnsafeHeapByteBuf
+ * PooledUnsafeDirectByteBuf
  *
  * @param <T>
  */

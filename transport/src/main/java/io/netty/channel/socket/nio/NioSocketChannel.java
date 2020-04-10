@@ -297,6 +297,11 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         doBind0(localAddress);
     }
 
+    /**
+     * 与JDK底层对接
+     * @param localAddress
+     * @throws Exception
+     */
     private void doBind0(SocketAddress localAddress) throws Exception {
         if (PlatformDependent.javaVersion() >= 7) {
             SocketUtils.bind(javaChannel(), localAddress);
@@ -305,21 +310,34 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         }
     }
 
+    /**
+     * 发起连接
+     * @param remoteAddress
+     * @param localAddress
+     * @return
+     * @throws Exception
+     */
     @Override
     protected boolean doConnect(SocketAddress remoteAddress, SocketAddress localAddress) throws Exception {
         if (localAddress != null) {
+            //正常情况LocalAddress不为空
             doBind0(localAddress);
         }
-
+        /*
+         * 绑定成功后,客户端向服务端发起连接请求，底层是通过JDK的NioSocketChannel
+         */
         boolean success = false;
         try {
             boolean connected = SocketUtils.connect(javaChannel(), remoteAddress);
             if (!connected) {
+                //连接失败，设置感兴趣事件为OP_CONNECT，从而可以进行重连
                 selectionKey().interestOps(SelectionKey.OP_CONNECT);
             }
             success = true;
+            //否则返回成功
             return connected;
         } finally {
+            // 上述代码抛出异常时，success还是false,不会更新
             if (!success) {
                 doClose();
             }
