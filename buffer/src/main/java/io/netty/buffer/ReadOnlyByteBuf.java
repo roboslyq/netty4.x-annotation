@@ -31,7 +31,7 @@ import java.nio.channels.ScatteringByteChannel;
  * A derived buffer which forbids any write requests to its parent.  It is
  * recommended to use {@link Unpooled#unmodifiableBuffer(ByteBuf)}
  * instead of calling the constructor explicitly.
- *
+ * 只读Buffer，不需要直接创建此类，我们可以通过{@link Unpooled#unmodifiableBuffer(ByteBuf)}来获取只读Buffer
  * @deprecated Do not use.
  */
 @Deprecated

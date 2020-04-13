@@ -13,6 +13,12 @@
 -  OioSctpChannel：同步的 Sctp 服务器端连接
 -  OioSctpServerChannel：同步的客户端 TCP Socket 连接
 
+## codec
+
+ByteToMessageCodec.java
+ByteToMessageDecoder.java
+MessageToByteEncoder.java
+
 ## codec-http
 
 HttpObjectAggregator.java
@@ -40,6 +46,16 @@ PooledByteBufAllocator.java
 PooledHeapByteBuf.java
 PoolSubpage.java
 Unpooled.java
+
+AbstractByteBuf.java
+AbstractByteBufAllocator.java
+AbstractReferenceCountedByteBuf.java
+HeapByteBufUtil.java
+PoolChunk.java
+PoolChunkMetric.java
+ReadOnlyByteBuf.java
+Unpooled.java
+UnpooledHeapByteBuf.java
 
 ##  common
 
@@ -150,3 +166,15 @@ SingleThreadEventLoop.java
 
 DefaultChannelPipeline.java
 FileRegion.java
+
+AbstractBootstrap.java
+AbstractNioByteChannel.java
+AbstractNioMessageChannel.java
+NioEventLoop.java
+NioSocketChannel.java
+AbstractChannel.java
+AbstractChannelHandlerContext.java
+ChannelDuplexHandler.java
+ChannelInboundInvoker.java
+DefaultChannelPipeline.java
+RecvByteBufAllocator.java

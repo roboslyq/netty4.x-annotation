@@ -355,23 +355,45 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
     }
 
+    /**
+     * 开始读
+     * 入站步骤：OP_ACCEPT_7
+     * 注意：这里是抽象类AbstractChannelHandlerContext，这个流程是公共的，因此从这里我们可以看出
+     * Pipeline中channelRead事件的传播主要就是通过ctx.fireChannelRead(msg)，获取当前ChannelHandlerContext下一个节点中封装的ChannelInboundHandler来实现的，
+     * 最后一步一步传递到Tail尾部节点（默认是TailContext）。
+     * @param msg NioSocketChannel
+     * @return
+     */
     @Override
     public ChannelHandlerContext fireChannelRead(final Object msg) {
-        invokeChannelRead(findContextInbound(MASK_CHANNEL_READ), msg);
+        //开始消息传递，findContextInbound方法按顺序获取当前ChannelHandlerContext的next节点
+        // 这个方法就是 "入站步骤：OP_ACCEPT_7"
+        invokeChannelRead(
+                findContextInbound(MASK_CHANNEL_READ) //获取下一个可用节点:入站是Inbound节点实现
+                , msg);
         return this;
     }
 
     /**
-     * 读消息
-     * @param next
-     * @param msg
+     * 读消息:
+     * 入站步骤：OP_ACCEPT_4
+     * @param next 第一次进入：HeadContext，最终会到TailContext
+     *             然后每次都是当前的next节点，直到最终的尾部节点TailContext。
+     * @param msg  第一次进入：NioSocketChannel
      */
     static void invokeChannelRead(final AbstractChannelHandlerContext next, Object msg) {
+        //DefaultChannelPipeline#touch
+        //ObjectUtil.checkNotNull 判断传入的消息数据是否为空
+        //next.pipeline.touch 对消息类型进行判断
         final Object m = next.pipeline.touch(ObjectUtil.checkNotNull(msg, "msg"), next);
+        //获取ChannelHandlerContext对应的线程
         EventExecutor executor = next.executor();
-        if (executor.inEventLoop()) {
+        //是否为当前线程
+        if (executor.inEventLoop()) {//默认为true
+            //调用ChannelHandlerContext中invokeChannelRead的回调方法
             next.invokeChannelRead(m);
         } else {
+            //如果线程不是当前线程,添加到任务队列
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -382,12 +404,23 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     }
 
     /**
-     * 处理读事件
+     * 处理读事件:
+     * 入站步骤：OP_ACCEPT_5
+     * 1、ACCEPT事件处理顺序：
+     *      DefaultChannelPipeline#HeadContext ( msg=NioSocketChannel      )
+     *        -->LogginHqandler     (msg=NioSocketChannel)
+     *           -->ServerBootstrap$ServerBootstrapAcceptor(msg=NioSocketChannel )
+     *      DefaultChannelPipeline#HeadContext(  msg=PooledUnsafeDirectByteBuf )
+     *        -->EchoServerHandler( msg=PooledUnsafeDirectByteBuf)
+     *
      * @param msg
      */
     private void invokeChannelRead(Object msg) {
         if (invokeHandler()) {
             try {
+                // 第一次进入是：handler() = HeadContext，经过层层pipeline调用，最终进入TailContext。
+                // 如果是NioSocketChannel，即读事件，具体解码器实现
+                // 如果是NioServerSocketChannel,即ACCEPT事件，由ServerBootstrapAcceptor处理。
                 ((ChannelInboundHandler) handler()).channelRead(this, msg);
             } catch (Throwable t) {
                 notifyHandlerException(t);
@@ -963,6 +996,11 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return false;
     }
 
+    /**
+     * @param mask 标识事件类型，详情见{@link ChannelHandlerMask}
+     *       在pipeline中，找到下一个合适的ChannelHandlerContext进行处理
+     * @return
+     */
     private AbstractChannelHandlerContext findContextInbound(int mask) {
         AbstractChannelHandlerContext ctx = this;
         do {

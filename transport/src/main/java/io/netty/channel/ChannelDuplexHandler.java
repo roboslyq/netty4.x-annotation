@@ -22,7 +22,7 @@ import java.net.SocketAddress;
 /**
  * {@link ChannelHandler} implementation which represents a combination out of a {@link ChannelInboundHandler} and
  * the {@link ChannelOutboundHandler}.
- *
+ * 集成了ChannelInboundHandler和ChannelOutboundHandler两个接口的能力
  * It is a good starting point if your {@link ChannelHandler} implementation needs to intercept operations and also
  * state updates.
  */

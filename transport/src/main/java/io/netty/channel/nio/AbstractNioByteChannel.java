@@ -39,6 +39,7 @@ import static io.netty.channel.internal.ChannelUtils.WRITE_STATUS_SNDBUF_FULL;
 
 /**
  * {@link AbstractNioChannel} base class for {@link Channel}s that operate on bytes.
+ * 具体实现只有一个子类:客户端NioSocketChannel。服务端继承详情见:AbstractNioMessageChannel。
  */
 public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     private static final ChannelMetadata METADATA = new ChannelMetadata(false, 16);
@@ -130,7 +131,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         }
 
         /**
-         * 读事件处理
+         * 已经处于ACTIVE的连接：读事件处理
          */
         @Override
         public final void read() {
@@ -141,7 +142,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             }
             // 获取对应的ChannelPipeline
             final ChannelPipeline pipeline = pipeline();
+//            获取一个ByteBuf的内存分配器, 用于分配ByteBuf
             final ByteBufAllocator allocator = config.getAllocator();
+//          allocHandle =    AdaptiveRecvByteBufAllocator$HandlerImpl
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
             allocHandle.reset(config);
 
@@ -150,7 +153,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             try {
                 do {
                     byteBuf = allocHandle.allocate(allocator);
-                    allocHandle.lastBytesRead(doReadBytes(byteBuf));
+                    // ==>核心读方法：将NioSocketChannel中的数据读入到ByteBuf中
+                    allocHandle.lastBytesRead(
+                            doReadBytes(byteBuf)//核心读方法，将数据读入到byteBuf中
+                    );
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.
                         byteBuf.release();
@@ -171,7 +177,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 } while (allocHandle.continueReading());
 
                 allocHandle.readComplete();
-                // pipeline读完成事件
+                // 事件4：pipeline读完成事件
                 pipeline.fireChannelReadComplete();
 
                 if (close) {

@@ -106,6 +106,12 @@ final class HeapByteBufUtil {
         memory[index + 2] = (byte) (value >>> 16);
     }
 
+    /**
+     * 设置Int，BE模式(大端)，因为byte只有8位，所以只会取低8位，因此，可以通类型转换来截以不同的位
+     * @param memory
+     * @param index
+     * @param value
+     */
     static void setInt(byte[] memory, int index, int value) {
         memory[index]     = (byte) (value >>> 24);
         memory[index + 1] = (byte) (value >>> 16);
@@ -113,6 +119,12 @@ final class HeapByteBufUtil {
         memory[index + 3] = (byte) value;
     }
 
+    /**
+     * 小端模式：与大端反过来
+     * @param memory
+     * @param index
+     * @param value
+     */
     static void setIntLE(byte[] memory, int index, int value) {
         memory[index]     = (byte) value;
         memory[index + 1] = (byte) (value >>> 8);

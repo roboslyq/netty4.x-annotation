@@ -27,9 +27,10 @@ import java.util.List;
  * A Codec for on-the-fly encoding/decoding of bytes to messages and vise-versa.
  *
  * This can be thought of as a combination of {@link ByteToMessageDecoder} and {@link MessageToByteEncoder}.
- *
+ * 编码器
  * Be aware that sub-classes of {@link ByteToMessageCodec} <strong>MUST NOT</strong>
  * annotated with {@link @Sharable}.
+ *
  */
 public abstract class ByteToMessageCodec<I> extends ChannelDuplexHandler {
 

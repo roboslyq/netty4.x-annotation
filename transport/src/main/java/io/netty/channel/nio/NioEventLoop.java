@@ -844,8 +844,14 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // to a spin loop
             // readyOps == 0 是对 JDK Bug 的处理，防止空的死循环
             // SelectionKey.OP_READ 或 SelectionKey.OP_ACCEPT 事件就绪
+            //读事件(OP_READ)和接受链接(OP_ACCEPT)事件
+            //如果当前NioEventLoop是work线程的话, 这里就是op_read事件
+            //如果是当前NioEventLoop是boss线程的话, 这里就是op_accept事件
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
                 // 核心的常用方法===> 读事件处理
+                // 当事件为OP_ACCEPT时(即ch为Server端:NioServerSocketChannel)，unsafe = AbstractNioMessageChannel#NioMessageUnsafe
+                // 当事件为OP_READ时(即ch为Client端:NioSocketChannel)，unsafe = AbstractNioByteChannel#NioByteUnsafe
+                // 入站步骤：OP_ACCEPT_1
                 unsafe.read();
             }
         } catch (CancelledKeyException ignored) {

@@ -308,12 +308,12 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         }
 
         /**
-         * Acceptor读请求实现
-         *  处理Pipeline所传播的channelRead事件
-         *  pipeline.fireChannelRead(readBuf.get(i));
-         *  ServerBootstrapAcceptor的channelRead接口将会被调用，用于处理channelRead事件
+         * 当事件为ACCEPTOR时，读请求实现
+         *      处理Pipeline所传播的channelRead事件
+         *      pipeline.fireChannelRead(readBuf.get(i));
+         *      ServerBootstrapAcceptor的channelRead接口将会被调用，用于处理channelRead事件
          * @param ctx
-         * @param msg
+         * @param msg NioSocketChannel
          */
         @Override
         @SuppressWarnings("unchecked")
@@ -334,6 +334,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 child.attr((AttributeKey<Object>) e.getKey()).set(e.getValue());
             }
             // 将NioSocketChannel注册到childGroup，也就是Netty的WorkerGroup当中去
+            // 也就是完成Selector注册。childGroup = NioEventLoopGroup
             try {
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override

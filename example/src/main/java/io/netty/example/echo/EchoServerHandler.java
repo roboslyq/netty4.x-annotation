@@ -27,11 +27,32 @@ public class EchoServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        System.out.println("读入数据：" +msg);
         ctx.write(msg);
+    }
+
+
+    @Override
+    public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("注册Registered");
+        ctx.fireChannelRegistered();
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("渠道Active");
+        ctx.fireChannelActive();
+    }
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("渠道InActive");
+
+        ctx.fireChannelInactive();
     }
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) {
+        System.out.println("读完成");
         ctx.flush();
     }
 

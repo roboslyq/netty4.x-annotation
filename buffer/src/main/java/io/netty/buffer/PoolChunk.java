@@ -102,34 +102,54 @@ import java.util.Deque;
  *
  * memoryMap[id]= depth_of_id  is defined above
  * depthMap[id]= x  indicates that the first node which is free to be allocated is at depth x (from root)
- * Netty中内存管理的数据一块，一个Chunk块由多个Page(PoolSubpage)组成
+ * 1、Netty中内存管理的数据一块，一个Chunk块由多个Page(PoolSubpage)组成
+ * 2、Chunk主要用来组织和管理多个Page的内存分配和释放。在Netty中，Chunk中的Page被构建成一颗二叉树。
  */
 final class PoolChunk<T> implements PoolChunkMetric {
 
     private static final int INTEGER_SIZE_MINUS_ONE = Integer.SIZE - 1;
-
+    /**
+     * 表示该PoolChunk所属的PoolArena。
+     */
     final PoolArena<T> arena;
+    /**
+     * 具体用来表示内存；byte[]或java.nio.ByteBuffer。
+     */
     final T memory;
+    /**
+     * 是否是可重用的，unpooled=false表示可重用
+     */
     final boolean unpooled;
+    /**
+     * TODO 偏移量
+     */
     final int offset;
     /**
      * 为了能够简单的操作内存，必须保证每次分配到的内存时连续的。Netty中底层的内存分配和回收管理主要由PoolChunk实现，
      * 其内部维护一棵平衡二叉树memoryMap，所有子节点管理的内存也属于其父节点.
-     * poolChunk默认由2048个page组成，一个page默认大小为8k，图中节点的值为在数组memoryMap的下标。
-     * 1、如果需要分配大小8k的内存，则只需要在第11层，找到第一个可用节点即可。
-     * 2、如果需要分配大小16k的内存，则只需要在第10层，找到第一个可用节点即可。
-     * 3、如果节点1024存在一个已经被分配的子节点2048，则该节点不能被分配，如需要分配大小16k的内存，这个时候节点2048已被分配，节点2049未被分配，就不能直接分配节点1024，因为该节点目前只剩下8k内存。
+     *
+     * poolChunk默认由2048个page组成，一个page默认大小为8k，节点的值为在数组memoryMap的下标。
+     *  1、如果需要分配大小8k的内存，则只需要在第11层，找到第一个可用节点即可。
+     *  2、如果需要分配大小16k的内存，则只需要在第10层，找到第一个可用节点即可。
+     *  3、如果节点1024存在一个已经被分配的子节点2048，则该节点不能被分配，如需要分配大小16k的内存，这个时候节点2048已被分配，
+     *     节点2049未被分配，就不能直接分配节点1024，因为该节点目前只剩下8k内存。
      *
      * poolChunk内部会保证每次分配内存大小为8K*(2n)，为了分配一个大小为chunkSize/(2k)的节点，需要在深度为k的层从左开始匹配节点，
      *
      */
     private final byte[] memoryMap;
     private final byte[] depthMap;
+    /**
+     * 示该PoolChunk所包含的PoolSubpage。也就是PoolChunk连续的可用内存
+     */
     private final PoolSubpage<T>[] subpages;
     /** Used to determine if the requested capacity is equal to or greater than pageSize. */
     private final int subpageOverflowMask;
+    //每个PoolSubpage的大小，默认为8192个字节（8K)
     private final int pageSize;
     private final int pageShifts;
+    //maxOrder = 11,即根据maxSubpageAllocs = 1 << maxOrder可得一个PoolChunk默认情况下由2^11=2048个SubPage构成，
+    // 而默认情况下一个page默认大小为8k，即pageSize=8K。
     private final int maxOrder;
     private final int chunkSize;
     private final int log2ChunkSize;
@@ -143,16 +163,30 @@ final class PoolChunk<T> implements PoolChunkMetric {
     //
     // This may be null if the PoolChunk is unpooled as pooling the ByteBuffer instances does not make any sense here.
     private final Deque<ByteBuffer> cachedNioBuffers;
-
+    //当前PoolChunk空闲的内存。
     private int freeBytes;
-
+    /**
+     * 一个PoolChunk内存默认大小为16M,太小了，所以需要将PoolChunk构建链表形式。
+     */
+    //一个PoolChunk分配后，会根据使用率挂在PoolArena的一个PoolChunkList中
     PoolChunkList<T> parent;
+    // PoolChunk本身设计为一个链表结构
     PoolChunk<T> prev;
     PoolChunk<T> next;
 
     // TODO: Test if adding padding helps under contention
     //private long pad0, pad1, pad2, pad3, pad4, pad5, pad6, pad7;
 
+    /**
+     * PoolChunk构造函数初始化： PoolChunk会涉及到具体的内存,泛型T表示byte[](堆内存)、或java.nio.ByteBuffer(堆外内存)
+     * @param arena
+     * @param memory
+     * @param pageSize
+     * @param maxOrder
+     * @param pageShifts
+     * @param chunkSize
+     * @param offset
+     */
     PoolChunk(PoolArena<T> arena, T memory, int pageSize, int maxOrder, int pageShifts, int chunkSize, int offset) {
         unpooled = false;
         this.arena = arena;

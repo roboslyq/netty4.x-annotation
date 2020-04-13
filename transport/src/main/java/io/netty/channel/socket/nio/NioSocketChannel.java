@@ -102,7 +102,8 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
      * @param socket    the {@link SocketChannel} which will be used
      *                  具体客户端与服务端的连接。比如 客户B 与 服务端A建立了连接，那个这个SocketChannel就是B和A之前的通道。
      */
-    public NioSocketChannel(Channel parent, SocketChannel socket) {
+    public
+    NioSocketChannel(Channel parent, SocketChannel socket) {
         // 调用父类构造器
         super(parent, socket);
         // 创建NioSocketChannelConfig
@@ -362,11 +363,21 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         javaChannel().close();
     }
 
+    /**
+     * ====>核心读方法，将数据读入到ByteBuf中
+     * @param byteBuf
+     * @return
+     * @throws Exception
+     */
     @Override
     protected int doReadBytes(ByteBuf byteBuf) throws Exception {
         final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
         allocHandle.attemptedBytesRead(byteBuf.writableBytes());
-        return byteBuf.writeBytes(javaChannel(), allocHandle.attemptedBytesRead());
+
+        return byteBuf.writeBytes(
+                javaChannel() //从JavaChannel中读取数据
+                , allocHandle.attemptedBytesRead()
+        );
     }
 
     @Override

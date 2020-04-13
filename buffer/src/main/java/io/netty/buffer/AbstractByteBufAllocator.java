@@ -247,6 +247,12 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return StringUtil.simpleClassName(this) + "(directByDefault: " + directByDefault + ')';
     }
 
+    /**
+     * 扩容方法实现，计算所需要的扩容的内存。
+     * @param minNewCapacity 最小目标容量
+     * @param maxCapacity 最大容量
+     * @return
+     */
     @Override
     public int calculateNewCapacity(int minNewCapacity, int maxCapacity) {
         checkPositiveOrZero(minNewCapacity, "minNewCapacity");
@@ -255,29 +261,40 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
                     "minNewCapacity: %d (expected: not greater than maxCapacity(%d)",
                     minNewCapacity, maxCapacity));
         }
+        //阈值为4mb<扩容最小单位是4M>
         final int threshold = CALCULATE_THRESHOLD; // 4 MiB page
-
+        //分支1 ：最小需要扩容内存(总内存) == 阈值,直接返回阈值即可
         if (minNewCapacity == threshold) {
+            //返回阈值
             return threshold;
         }
 
         // If over threshold, do not double but just increase by threshold.
+        //分支2： 最小扩容内存>阈值，那么需要计算出一个需要多少个阀值
         if (minNewCapacity > threshold) {
+            //newCapacity为需要扩容内存<取整数倍*threshold>，这样算法，剩余未考虑的内存数肯定小于阀值
             int newCapacity = minNewCapacity / threshold * threshold;
+            //目标容量+阈值>最大容量
             if (newCapacity > maxCapacity - threshold) {
+                //将最大容量作为新容量
                 newCapacity = maxCapacity;
             } else {
+                //否则, 目标容量+阈值
                 newCapacity += threshold;
             }
             return newCapacity;
         }
-
+        // 分支3：如果小于阈值，目标容量<需要扩容的容量。默认扩容是当所需容量大小（minNewCapacity）小于阀值（threshold）的时候，
+        // 新的容量（newCapacity）都是是以64位基数向坐移位位计算出来的，通过循环，每次移动移1位，
+        // 直到newCapacity>=minNewCapacity为止，如果计算出来newCapacity大于maxCapacity，则返回maxCapacity，
+        // 否则返回newCapacity。也就是说当minNewCapacity=300的时候，newCapacity=512。
         // Not over threshold. Double up to 4 MiB, starting from 64.
         int newCapacity = 64;
         while (newCapacity < minNewCapacity) {
+            //倍增
             newCapacity <<= 1;
         }
-
+        //目标容量和最大容量返回一个最小的
         return Math.min(newCapacity, maxCapacity);
     }
 }

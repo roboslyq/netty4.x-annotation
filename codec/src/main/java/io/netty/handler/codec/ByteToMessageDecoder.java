@@ -31,7 +31,7 @@ import java.util.List;
 /**
  * {@link ChannelInboundHandlerAdapter} which decodes bytes in a stream-like fashion from one {@link ByteBuf} to an
  * other Message type.
- *
+ * 解码器，自定义协议可以实现此接口
  * For example here is an implementation which reads all readable bytes from
  * the input {@link ByteBuf} and create a new {@link ByteBuf}.
  *
@@ -261,6 +261,12 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     protected void handlerRemoved0(ChannelHandlerContext ctx) throws Exception { }
 
+    /**
+     * 读信息
+     * @param ctx
+     * @param msg 可能为ByteBuf或者NioChannelSocket
+     * @throws Exception
+     */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
@@ -296,6 +302,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 out.recycle();
             }
         } else {
+            //如果是NioSocketChannel，
             ctx.fireChannelRead(msg);
         }
     }

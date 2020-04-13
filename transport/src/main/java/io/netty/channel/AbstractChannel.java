@@ -524,6 +524,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             assert !registered || eventLoop.inEventLoop();
         }
 
+        /**
+         * recvHandle = AdaptiveRecvByteBufAllocator
+         * @return
+         */
         @Override
         public RecvByteBufAllocator.Handle recvBufAllocHandle() {
             if (recvHandle == null) {
@@ -619,7 +623,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);
-                // 核心方法 ==========>pipeline发送Channel注册事件，完成pipeline初始化
+                // 事件1：核心方法 ==========>pipeline发送Channel注册事件，完成pipeline初始化
                 pipeline.fireChannelRegistered();
 
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
@@ -687,7 +691,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        // 触发 Channel 激活的事件===>核心方法<在HeadContext中会调用Unsafe#beginRead方法>
+                        // 事件3： 触发 Channel 激活的事件===>核心方法<在HeadContext中会调用Unsafe#beginRead方法>
                         pipeline.fireChannelActive();
                     }
                 });

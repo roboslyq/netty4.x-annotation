@@ -686,7 +686,7 @@ public final class Unpooled {
      * on the specified {@code buffer}.  The new buffer has the same
      * {@code readerIndex} and {@code writerIndex} with the specified
      * {@code buffer}.
-     *
+     * 将给定的buffer包装成只读Buffer
      * @deprecated Use {@link ByteBuf#asReadOnly()}.
      */
     @Deprecated

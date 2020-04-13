@@ -444,6 +444,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             public void run() {
                 if (regFuture.isSuccess()) {
                     //绑定端口: AbstractChannel.bind(SocketAddress localAddress, ChannelPromise promise)
+                   // 事件2：会触发绑定事件
                     channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                 } else {
                     promise.setFailure(regFuture.cause());

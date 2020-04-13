@@ -144,6 +144,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return handle;
     }
 
+    /**
+     * 判断是不是需要引用计数(主动释放内存),如果需要则使用ReferenceCountUtil进行包装，如果不需要直接反回原对象。
+     * 关于ReferenceCountUtil一般在TailContext中进行(pipeline最尾端)
+     * @param msg
+     * @param next
+     * @return
+     */
     final Object touch(Object msg, AbstractChannelHandlerContext next) {
         return touch ? ReferenceCountUtil.touch(msg, next) : msg;
     }
@@ -1050,6 +1057,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 渠道激活事件
+     * @return
+     */
     @Override
     public final ChannelPipeline fireChannelActive() {
         AbstractChannelHandlerContext.invokeChannelActive(head);
@@ -1074,8 +1085,15 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 开始读
+     * 入站步骤：OP_ACCEPT_3
+     * @param msg NioSocketChannel
+     * @return
+     */
     @Override
     public final ChannelPipeline fireChannelRead(Object msg) {
+        // head = HeadContext.即读是从head节点开始
         AbstractChannelHandlerContext.invokeChannelRead(head, msg);
         return this;
     }
@@ -1368,6 +1386,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      * Called once a message hit the end of the {@link ChannelPipeline} without been handled by the user
      * in {@link ChannelInboundHandler#channelRead(ChannelHandlerContext, Object)}. This method is responsible
      * to call {@link ReferenceCountUtil#release(Object)} on the given msg at some point.
+     * 读取资源时已经到尾部节点TailConext,进行资源释放。
+     * 入站消息的资源释放方式正常如下：
+     *     1、继承ChannelInboundHandlerAdapter ，在channelRead的方法实现中调用ctx.fireChannelRead(object)方法，把消息一直向下传递，
+     *          直到传递到Tail尾部节点，由Tail节点执行 ReferenceCountUtil.release来减少计数器，保证资源释放；
+     *     2、继承SimpleChannelInboundHandler，SimpleChannelInboundHandler本身的ChannelRead方法中会执行 ReferenceCountUtil.release来减少引用；
+     *     3、如果以上两点都没有做到，那就需要手动调用ReferenceCountUtil.release来减少引用来释放资源；
      */
     protected void onUnhandledInboundMessage(Object msg) {
         try {
@@ -1471,6 +1495,14 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             onUnhandledInboundException(cause);
         }
 
+        /**
+         * 最尾部的读，释放资源
+         * Netty中对象的生命周期由它们的引用计数管理的，为保证入站对象资源被释放，我们需要通过ReferenceCountUtil.release方法减少引用计数，
+         * 确保对象的的最终计数器最后被置为0，从而被回收释放。
+         * 在实现的每一个ChannelInboundHandler中都调用了ctx.fireChannelRead(msg)，最后消息会被传递到Tail尾节点(即当前节点)
+         * @param ctx
+         * @param msg
+         */
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             onUnhandledInboundMessage(msg);
@@ -1602,7 +1634,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
             ctx.fireChannelActive();
-            //如果可读的话，进行读监听
+            //如果可读的话，进行读监听<默认为True>
             readIfIsAutoRead();
         }
 
@@ -1611,6 +1643,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             ctx.fireChannelInactive();
         }
 
+        /**
+         * 服务端读事件入口：
+         * 入站步骤：OP_ACCEPT_6
+         * @param ctx
+         * @param msg NioSocketChannel
+         */
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             ctx.fireChannelRead(msg);
