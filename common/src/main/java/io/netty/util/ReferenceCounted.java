@@ -30,7 +30,10 @@ package io.netty.util;
  * {@link ReferenceCounted}, the contained objects will also be released via {@link #release()} when the container's
  * reference count becomes 0.
  * </p>
- *
+ * 被引用计数包含的对象，能够显示的被垃圾回收。
+ * 当初始化的时候，计数为1。retain（）方法能够增加计数，release() 方法能够减少计数，如果计数被减少到0则对象会被显示回收，再次访问被回收的这些对象将会抛出异常。
+ * 如果一个对象实现了ReferenceCounted，并且包含有其他对象也实现来ReferenceCounted，
+ * 当这个对象计数为0被回收的时候，所包含的对象同样会通过release()释放掉。
  */
 public interface ReferenceCounted {
     /**
@@ -47,6 +50,7 @@ public interface ReferenceCounted {
 
     /**
      * Increases the reference count by the specified {@code increment}.
+     * retain()方法对引用计数加 increment
      */
     ReferenceCounted retain(int increment);
 
@@ -54,7 +58,7 @@ public interface ReferenceCounted {
      * Records the current access location of this object for debugging purposes.
      * If this object is determined to be leaked, the information recorded by this operation will be provided to you
      * via {@link ResourceLeakDetector}.  This method is a shortcut to {@link #touch(Object) touch(null)}.
-     *
+     * 等价于touch(null)
      */
     ReferenceCounted touch();
 
@@ -62,6 +66,9 @@ public interface ReferenceCounted {
      * Records the current access location of this object with an additional arbitrary information for debugging
      * purposes.  If this object is determined to be leaked, the information recorded by this operation will be
      * provided to you via {@link ResourceLeakDetector}.
+     * 调试用途：
+     *     出于调试目的,用一个额外的任意的(arbitrary)信息记录这个对象的当前访问地址. 如果这个对象被检测到泄露了,
+     *     这个操作记录的信息将通过ResourceLeakDetector提供.
      */
     ReferenceCounted touch(Object hint);
 
@@ -77,7 +84,7 @@ public interface ReferenceCounted {
     /**
      * Decreases the reference count by the specified {@code decrement} and deallocates this object if the reference
      * count reaches at {@code 0}.
-     *
+     * 引用计数减 decrement
      * @return {@code true} if and only if the reference count became {@code 0} and this object has been deallocated
      */
     boolean release(int decrement);

@@ -552,6 +552,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         }
 
         /**
+         * START-SERVER-STEP4.2:
          * 注册 Channel
          * @param eventLoop
          * @param promise
@@ -578,10 +579,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             } else {
                 try {
                     /*
+                     * START-SERVER-STEP4.3：
                      * 注册核心方法
-                     * eventLoop = NioEventLoop ,所以最终eventLoop.execute()调用栈如下：
-                     *  SingleThreadEventExecutor#execute()
-                     *     --> SingleThreadEventExecutor#startThread()
+                     *  eventLoop = NioEventLoop ,所以最终eventLoop.execute()调用栈如下：
+                     *      SingleThreadEventExecutor#execute()
+                     *      --> SingleThreadEventExecutor#startThread()
                      */
                     eventLoop.execute(new Runnable() {
                         @Override
@@ -601,6 +603,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         }
 
         /**
+         * START-SERVER-STEP4.3：
          * 注册Channel
          * @param promise
          */
@@ -619,10 +622,13 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
+
+                // START-SERVER-STEP4.5：
                 // 核心方法 ==========>保证调用handlerAdded()方法，从而完成pipeline构建。
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);
+                // START-SERVER-STEP4.6：
                 // 事件1：核心方法 ==========>pipeline发送Channel注册事件，完成pipeline初始化
                 pipeline.fireChannelRegistered();
 
@@ -630,6 +636,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 // multiple channel actives if the channel is deregistered and re-registered.
                 if (isActive()) {
                     if (firstRegistration) {
+                        //START-SERVER-STEP4.7
+                        // 激活事件：
                         pipeline.fireChannelActive();
                     } else if (config().isAutoRead()) {
                         // This channel was registered before and autoRead() is set. This means we need to begin read

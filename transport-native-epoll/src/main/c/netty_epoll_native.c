@@ -157,15 +157,20 @@ static void netty_epoll_native_timerFdRead(JNIEnv* env, jclass clazz, jint fd) {
         netty_unix_errors_throwChannelExceptionErrorNo(env, "read() failed: ", errno);
     }
 }
-
+/*
+* 步骤1 ： 创建Epoll句柄
+*/
 static jint netty_epoll_native_epollCreate(JNIEnv* env, jclass clazz) {
     jint efd;
+    //如果使用epoll_create1模式
     if (epoll_create1) {
         efd = epoll_create1(EPOLL_CLOEXEC);
     } else {
+        //如果使用epoll_create模式
         // size will be ignored anyway but must be positive
         efd = epoll_create(126);
     }
+    // efd < 0 表示句柄创建失败
     if (efd < 0) {
         int err = errno;
         if (epoll_create1) {
@@ -175,6 +180,7 @@ static jint netty_epoll_native_epollCreate(JNIEnv* env, jclass clazz) {
         }
         return efd;
     }
+
     if (!epoll_create1) {
         if (fcntl(efd, F_SETFD, FD_CLOEXEC) < 0) {
             int err = errno;
@@ -185,7 +191,9 @@ static jint netty_epoll_native_epollCreate(JNIEnv* env, jclass clazz) {
     }
     return efd;
 }
-
+/*
+* 步骤3： 等待监听描述符事件
+*/
 static jint netty_epoll_native_epollWait0(JNIEnv* env, jclass clazz, jint efd, jlong address, jint len, jint timerFd, jint tvSec, jint tvNsec) {
     struct epoll_event *ev = (struct epoll_event*) (intptr_t) address;
     int result, err;
@@ -256,8 +264,11 @@ static jint netty_epoll_native_epollBusyWait0(JNIEnv* env, jclass clazz, jint ef
 
     return -err;
 }
-
+/**
+* 步骤2 ： 监听Epoll描述符
+*/
 static jint netty_epoll_native_epollCtlAdd0(JNIEnv* env, jclass clazz, jint efd, jint fd, jint flags) {
+    //系统调用，监听epoll描述符
     int res = epollCtl(env, efd, EPOLL_CTL_ADD, fd, flags);
     if (res < 0) {
         return -errno;
@@ -271,7 +282,9 @@ static jint netty_epoll_native_epollCtlMod0(JNIEnv* env, jclass clazz, jint efd,
     }
     return res;
 }
-
+/**
+*Netty的epoll函数实现
+*/
 static jint netty_epoll_native_epollCtlDel0(JNIEnv* env, jclass clazz, jint efd, jint fd) {
     // Create an empty event to workaround a bug in older kernels which can not handle NULL.
     struct epoll_event event = { 0 };

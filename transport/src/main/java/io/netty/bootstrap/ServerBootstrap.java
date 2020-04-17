@@ -53,11 +53,20 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
      */
     private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
     /**
-     * 从线程池(workerGroup)相关配置
+     * 从线程池(workerGroup)可选项相关配置
      */
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<ChannelOption<?>, Object>();
+    /**
+     * 从线程池(workerGroup)ATTR相关配置
+     */
     private final Map<AttributeKey<?>, Object> childAttrs = new LinkedHashMap<AttributeKey<?>, Object>();
+    /**
+     * 定义(workerGroup)的线程组
+     */
     private volatile EventLoopGroup childGroup;
+    /**
+     * 定义(workerGroup)的Handler：此处通常为ChannelInitializer的具体实现
+     */
     private volatile ChannelHandler childHandler;
 
     public ServerBootstrap() { }
@@ -143,7 +152,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
     }
 
     /**
-     * 服务启动时配置channel<NioServerSocketChannel>
+     * START-SERVER-STEP3：
+     * 服务端启动时配置channel<NioServerSocketChannel>,在父类AbstractBootStrap#initAndRegister()被调用
      * @param channel
      * @throws Exception
      */
@@ -220,9 +230,11 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                p.addLast(serverHandler);
                pipeline.addLast(new ServerBootstrapAcceptor())
 
-          DefaultChannelPipeline采用了链表方式保存上述结构关系。
+                DefaultChannelPipeline采用了链表方式保存上述结构关系。
          */
-
+        /*
+         * 因为是服务端，所以需要添加一个通用的Handler: ServerBootstrapAcceptor
+         */
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) throws Exception {

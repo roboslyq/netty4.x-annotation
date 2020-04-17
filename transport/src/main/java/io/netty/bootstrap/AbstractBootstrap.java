@@ -315,13 +315,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * 启动服务器绑定端口
+     * START-SERVER-STEP1：启动服务器绑定端口
      * @param localAddress
      * @return
      */
     private ChannelFuture doBind(final SocketAddress localAddress) {
         /*
-         * 异步初始化并且注册: 绑定Channel与NioEventLoop
+         * 1、异步初始化并且注册: 绑定Channel与NioEventLoop
+         * 2、initAndRegister()是一个很核心的方法
          */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
@@ -329,11 +330,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return regFuture;
         }
         /*
-         *异步注册完成之后进入端口绑定<异步注册不一定完成，此处不会阻塞>：
+         * 异步注册完成之后进入端口绑定<异步注册不一定完成，此处不会阻塞>：
+         * 所以状态可能有两种结果，一种是已经完成注册regFuture.isDone() = true,则直接进行bind相关操作
+         * 如果regFuture.isDone() = false,那么添加任务队列进行相关Bind操作。
          */
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
+            // START-SERVER-STEP5
             // 当注册已经成功时，我们进行端口绑定
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
@@ -367,8 +371,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * (server-start-2):初始经并且注册channel到Selector中
-     * <这个方法服务端与客户端完全共享(NioServerSocketChannel与NioSocketChannel完全共享这一段代码)>
+     * START-SERVER-STEP1：
+     *      (server-start-2):初始经并且注册channel到Selector中
+     *      <这个方法服务端与客户端完全共享(NioServerSocketChannel与NioSocketChannel完全共享这一段代码)>
      * @return
      */
     final ChannelFuture initAndRegister() {
@@ -389,9 +394,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
         /*
-         * 注册 Channel 到 EventLoopGroup 中：即将Channel（NioServerSocketChannel）注册到Reactor主线程中。
-         *  config.group() = EventLoopGroup ,具体实例为MultithreadEventLoopGroup
-         *  config().group().registrer()  = MultithreadEventLoopGroup.registrer()
+         * START-SERVER-STEP4：
+         *      注册 Channel 到 EventLoopGroup 中：即将Channel（NioServerSocketChannel）注册到Reactor主线程中。
+         *      config.group() = EventLoopGroup ,具体实例为MultithreadEventLoopGroup
+         *      config().group().registrer()  = MultithreadEventLoopGroup.registrer()
          */
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
@@ -443,8 +449,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             @Override
             public void run() {
                 if (regFuture.isSuccess()) {
+                    // START-SERVER-STEP5.1：
                     //绑定端口: AbstractChannel.bind(SocketAddress localAddress, ChannelPromise promise)
-                   // 事件2：会触发绑定事件
+                    // 事件2：会触发绑定事件
                     channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                 } else {
                     promise.setFailure(regFuture.cause());

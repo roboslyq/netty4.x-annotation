@@ -26,8 +26,13 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
+/**
+ * 池化的堆内存缓存实现
+ */
 class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
-
+    /**
+     * 具体的池化技术Recycler实现
+     */
     private static final Recycler<PooledHeapByteBuf> RECYCLER = new Recycler<PooledHeapByteBuf>() {
         @Override
         protected PooledHeapByteBuf newObject(Handle<PooledHeapByteBuf> handle) {

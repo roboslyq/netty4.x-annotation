@@ -139,6 +139,13 @@ public final class Native {
             throw newIOException("epoll_ctl", res);
         }
     }
+
+    /**
+     * epoll之后会删除，因此是边缘触发。而Java NIO是水平触发，因此netty的性能较高。
+     * @param efd
+     * @param fd
+     * @return
+     */
     private static native int epollCtlDel0(int efd, int fd);
 
     // File-descriptor operations

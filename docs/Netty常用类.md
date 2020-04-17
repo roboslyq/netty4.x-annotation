@@ -15,86 +15,76 @@
 
 ## codec
 
-ByteToMessageCodec.java
-ByteToMessageDecoder.java
-MessageToByteEncoder.java
+- ByteToMessageCodec.java
+- ByteToMessageDecoder.java
+- MessageToByteEncoder.java
 
 ## codec-http
 
-HttpObjectAggregator.java
+- HttpObjectAggregator.java
 
 
 
 ##  buffer
 
-ByteBuf.java
-ByteBufAllocator.java
-ByteBufHolder.java
-ByteBufUtil.java
-CompositeByteBuf.java
-PooledByteBuf.java
-Unpooled.java
-
-ByteBuf.java
-
-ByteBufUtil.java
-PoolArena.java
-PoolChunk.java
-PoolChunkList.java
-PooledByteBuf.java
-PooledByteBufAllocator.java
-PooledHeapByteBuf.java
-PoolSubpage.java
-Unpooled.java
-
-AbstractByteBuf.java
-AbstractByteBufAllocator.java
-AbstractReferenceCountedByteBuf.java
-HeapByteBufUtil.java
-PoolChunk.java
-PoolChunkMetric.java
-ReadOnlyByteBuf.java
-Unpooled.java
-UnpooledHeapByteBuf.java
+- AbstractByteBuf.java
+- AbstractByteBufAllocator.java
+- AbstractReferenceCountedByteBuf.java
+- ByteBuf.java
+- ByteBufAllocator.java
+- ByteBufHolder.java
+- ByteBufUtil.java
+- CompositeByteBuf.java
+- HeapByteBufUtil.java
+- PoolArena.java
+- PoolChunk.java
+- PoolChunkList.java
+- PoolChunkMetric.java
+- PooledByteBuf.java
+- PooledByteBufAllocator.java
+- PooledHeapByteBuf.java
+- PoolSubpage.java
+- ReadOnlyByteBuf.java
+- Unpooled.java
+- UnpooledHeapByteBuf.java
 
 ##  common
 
-DefaultPromise.java
-
 AbstractEventExecutor.java
+AbstractScheduledEventExecutor.java
+DefaultEventExecutorChooserFactory.java
+DefaultEventExecutorGroup.java
+DefaultPromise.java
+DefaultThreadFactory 
+DefaultThreadFactory.java
 EventExecutor.java
+EventExecutorChooserFactory.java
+EventExecutorGroup.java
+
+- FastThreadLocal
+  - 对JDK的ThreadLocal进行优化扩展
+
+FastThreadLocal.java
+FastThreadLocalRunnable
+FastThreadLocalRunnable.java
+InternalLoggerFactory.java
+MultithreadEventExecutorGroup.java
 OrderedEventExecutor.java
 
-AbstractEventExecutor.java
-AbstractScheduledEventExecutor.java
-EventExecutor.java
-EventExecutorGroup.java
+- Recycler
+  - 对象池化技术实现
+  - 主要有3个内部抽象
+    - Handle
+    - Stack
+    - WeakOrderQueue
+
 SingleThreadEventExecutor.java
-
-FastThreadLocalRunnable
-
-FastThreadLocal
-
- DefaultThreadFactory 
-
-DefaultEventExecutorGroup.java
-DefaultThreadFactory.java
-FastThreadLocal.java
-FastThreadLocalRunnable.java
-MultithreadEventExecutorGroup.java
-SingleThreadEventExecutor.java
-ThreadPerTaskExecutor.java
-ThreadExecutorMap.java
-
 SocketUtils.java
+ThreadExecutorMap.java
+ThreadPerTaskExecutor.java
 
-AbstractScheduledEventExecutor.java
-InternalLoggerFactory.java
-
-DefaultEventExecutorChooserFactory.java
-EventExecutorChooserFactory.java
-MultithreadEventExecutorGroup.java
-SingleThreadEventExecutor.java
+- Promise
+  - 一个异步框架的实现。扩展的JDK原生的Future.
 
 ## handler
 
@@ -103,78 +93,40 @@ IdleStateHandler.java
 
 ## transport
 
-DefaultEventExecutorGroup.java
-DefaultThreadFactory.java
-FastThreadLocal.java
-FastThreadLocalRunnable.java
-MultithreadEventExecutorGroup.java
-SingleThreadEventExecutor.java
-ThreadPerTaskExecutor.java
-ThreadExecutorMap.java
 AbstractBootstrap.java
-ServerBootstrap.java
-AbstractNioMessageChannel.java
-NioEventLoop.java
-NioEventLoopGroup.java
-NioServerSocketChannel.java
+AbstractBootstrapConfig.java
 AbstractChannel.java
 AbstractChannelHandlerContext.java
-ChannelHandlerContext.java
-ChannelInitializer.java
-DefaultChannelPipeline.java
-DefaultChannelPromise.java
-EventLoopGroup.java
-MultithreadEventLoopGroup.java
-SingleThreadEventLoop.java
-
-AbstractBootstrap.java
-
-ServerBootstrap.java
+AbstractNioByteChannel.java
 AbstractNioChannel.java
-
-NioEventLoop.java
-NioServerSocketChannel.java
-AbstractChannel.java
-AbstractChannelHandlerContext.java
+AbstractNioMessageChannel.java
 Channel.java
+ChannelDuplexHandler.java
+ChannelHandlerContext.java
+ChannelInboundInvoker.java
 ChannelInitializer.java
+ChannelOutboundInvoker.java
 DefaultChannelHandlerContext.java
 DefaultChannelPipeline.java
+DefaultChannelPromise.java
+DefaultEventExecutorGroup.java
+DefaultSelectStrategy.java
+DefaultThreadFactory.java
+EventLoop.java
+EventLoopGroup.java
+FastThreadLocal.java
+FastThreadLocalRunnable.java
+FileRegion.java
+MultithreadEventExecutorGroup.java
 MultithreadEventLoopGroup.java
-ReflectiveChannelFactory.java
-SingleThreadEventLoop.java
-
-AbstractBootstrapConfig.java
-ServerBootstrap.java
-AbstractNioChannel.java
 NioEventLoop.java
 NioEventLoopGroup.java
-AbstractChannel.java
-AbstractChannelHandlerContext.java
-DefaultChannelPipeline.java
-EventLoop.java
-ReflectiveChannelFactory.java
-SingleThreadEventLoop.java
-
-AbstractNioByteChannel.java
-NioEventLoop.java
-AbstractChannelHandlerContext.java
-ChannelInboundInvoker.java
-ChannelOutboundInvoker.java
-DefaultSelectStrategy.java
-SingleThreadEventLoop.java
-
-DefaultChannelPipeline.java
-FileRegion.java
-
-AbstractBootstrap.java
-AbstractNioByteChannel.java
-AbstractNioMessageChannel.java
-NioEventLoop.java
+NioServerSocketChannel.java
 NioSocketChannel.java
-AbstractChannel.java
-AbstractChannelHandlerContext.java
-ChannelDuplexHandler.java
-ChannelInboundInvoker.java
-DefaultChannelPipeline.java
 RecvByteBufAllocator.java
+ReflectiveChannelFactory.java
+ServerBootstrap.java
+SingleThreadEventExecutor.java
+SingleThreadEventLoop.java
+ThreadExecutorMap.java
+ThreadPerTaskExecutor.java

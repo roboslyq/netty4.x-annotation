@@ -50,9 +50,18 @@ public class RedisEncoder extends MessageToMessageEncoder<RedisMessage> {
         this.messagePool = ObjectUtil.checkNotNull(messagePool, "messagePool");
     }
 
+    /**
+     * 实现父类编码抽象方法，
+     * @param ctx           the {@link ChannelHandlerContext} which this {@link MessageToMessageEncoder} belongs to
+     * @param msg           the message to encode to an other one
+     * @param out           the {@link List} into which the encoded msg should be added
+     *                      needs to do some kind of aggregation
+     * @throws Exception
+     */
     @Override
     protected void encode(ChannelHandlerContext ctx, RedisMessage msg, List<Object> out) throws Exception {
         try {
+            //编码,具体编码结果存放out中,不需要返回值
             writeRedisMessage(ctx.alloc(), msg, out);
         } catch (CodecException e) {
             throw e;
@@ -61,6 +70,12 @@ public class RedisEncoder extends MessageToMessageEncoder<RedisMessage> {
         }
     }
 
+    /**
+     * Redis编码
+     * @param allocator
+     * @param msg
+     * @param out
+     */
     private void writeRedisMessage(ByteBufAllocator allocator, RedisMessage msg, List<Object> out) {
         if (msg instanceof InlineCommandRedisMessage) {
             writeInlineCommandMessage(allocator, (InlineCommandRedisMessage) msg, out);
@@ -84,7 +99,13 @@ public class RedisEncoder extends MessageToMessageEncoder<RedisMessage> {
             throw new CodecException("unknown message type: " + msg);
         }
     }
-
+    // 以下相关方法是针对redis具体的每一种类型进行编码
+    /**
+     * 以下
+     * @param allocator
+     * @param msg
+     * @param out
+     */
     private static void writeInlineCommandMessage(ByteBufAllocator allocator, InlineCommandRedisMessage msg,
                                                  List<Object> out) {
         writeString(allocator, RedisMessageType.INLINE_COMMAND, msg.content(), out);

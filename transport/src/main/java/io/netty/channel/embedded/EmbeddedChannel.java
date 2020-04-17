@@ -45,7 +45,15 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 
 /**
  * Base class for {@link Channel} implementations that are used in an embedded fashion.
- */
+ * Netty 提供了 EmbeddedChannel 嵌入式通道来完成单元测试这一过程，主要使用该通道来测试数据的入站出站过程是否合法；
+ *
+ * 该通道提供以下常用的 API：
+ * writeInbound		写一个入站消息到 EmbeddedChannel。 如果数据能从 EmbeddedChannel 通过 readInbound() 读到，则返回 true；
+ * readInbound		从 EmbeddedChannel 读到入站消息。任何返回遍历整个ChannelPipeline。如果读取还没有准备，则此方法返回 null；
+ * writeOutbound	写一个出站消息到 EmbeddedChannel。 如果数据能从 EmbeddedChannel 通过 readOutbound() 读到，则返回 true；
+ * readOutbound		从 EmbeddedChannel 读到出站消息。任何返回遍历整个ChannelPipeline。如果读取还没有准备，则此方法返回 null；
+ * Finish		    如果从入站或者出站中能读到数据，标记 EmbeddedChannel 完成并且返回。这同时会调用 EmbeddedChannel 的关闭方法；
+  */
 public class EmbeddedChannel extends AbstractChannel {
 
     private static final SocketAddress LOCAL_ADDRESS = new EmbeddedSocketAddress();

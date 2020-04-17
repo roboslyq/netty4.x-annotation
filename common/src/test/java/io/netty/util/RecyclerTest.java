@@ -24,10 +24,18 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
 
+/**
+ * Recycler单元测试类
+ */
 public class RecyclerTest {
-
+    /**
+     * 创建一个Recycler对象实例，因为Recycler本身是抽象的，因此需要此方式实现例化。
+     * @param max
+     * @return
+     */
     private static Recycler<HandledObject> newRecycler(int max) {
         return new Recycler<HandledObject>(max) {
+            //如果当前缓冲池为空，训实例化一个新对象
             @Override
             protected HandledObject newObject(
                     Recycler.Handle<HandledObject> handle) {
@@ -73,10 +81,17 @@ public class RecyclerTest {
         reference.getAndSet(null).recycle();
     }
 
-    @Test(expected = IllegalStateException.class)
+    /**
+     * 多次回收测试，预期结果是会抛出IllegalStateException
+     */
+    @Test()
     public void testMultipleRecycle() {
         Recycler<HandledObject> recycler = newRecycler(1024);
         HandledObject object = recycler.get();
+        /*
+         * 此处注意,直接调用的是HandleObject中的recycle方法,即Handle#recycle()方法.
+         * 此方法能完成不同线程间的对象回收.
+         */
         object.recycle();
         object.recycle();
     }
@@ -277,13 +292,16 @@ public class RecyclerTest {
                 " internally", array.length - maxCapacity / 2 <= instancesCount.get());
     }
 
+    /**
+     * 普通的POJO: POJO中包含有Handle对象。
+     */
     static final class HandledObject {
+
         Recycler.Handle<HandledObject> handle;
 
         HandledObject(Recycler.Handle<HandledObject> handle) {
             this.handle = handle;
         }
-
         void recycle() {
             handle.recycle(this);
         }

@@ -1159,9 +1159,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      */
     @Override
     public final ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
-        /*
-         * 1、tail = DefaultChannelPipeline$TailContext
-         * 2、tail没有重写bind(localAddress, promise)，因此调用的是父类AbstractChannelHandlerContext#bind(localAddress, promise)，
+        /* START-SERVER-STEP5.2:
+         *      1、tail = DefaultChannelPipeline$TailContext
+         *      2、tail没有重写bind(localAddress, promise)，因此调用的是父类AbstractChannelHandlerContext#bind(localAddress, promise)，
          */
         return tail.bind(localAddress, promise);
     }

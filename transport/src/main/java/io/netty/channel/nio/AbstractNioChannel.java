@@ -407,6 +407,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     }
 
     /**
+     * START-SERVER-STEP4.4：
      * 通过NioEventLoop实现将Channel注册到Selector(JDk)中
      * @throws Exception
      */

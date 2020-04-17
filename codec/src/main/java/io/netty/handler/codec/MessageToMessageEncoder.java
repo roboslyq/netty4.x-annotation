@@ -30,9 +30,9 @@ import java.util.List;
 
 /**
  * {@link ChannelOutboundHandlerAdapter} which encodes from one message to an other message
- *
  * For example here is an implementation which decodes an {@link Integer} to an {@link String}.
- *
+ * 编码器(出站端)：将其中一种message编码成另一种message，比如将Integer编码成String
+ * 使用示例如下：重写encode()方法即可。
  * <pre>
  *     public class IntegerToStringEncoder extends
  *             {@link MessageToMessageEncoder}&lt;{@link Integer}&gt; {
@@ -50,7 +50,9 @@ import java.util.List;
  * {@link ReferenceCounted#release()} on encoded messages.
  */
 public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerAdapter {
-
+    /**
+     * 类型参数匹配器：判断对应的Handler是否对参数是否需要处理
+     */
     private final TypeParameterMatcher matcher;
 
     /**
@@ -72,22 +74,32 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
     /**
      * Returns {@code true} if the given message should be handled. If {@code false} it will be passed to the next
      * {@link ChannelOutboundHandler} in the {@link ChannelPipeline}.
+     * 如果需要对相应的message做处理，返回true,否则返回false，直接交给下一个ChannelOutboundHandler处理。
      */
     public boolean acceptOutboundMessage(Object msg) throws Exception {
         return matcher.match(msg);
     }
 
+    /**
+     * 出站端写
+     * @param ctx
+     * @param msg
+     * @param promise
+     * @throws Exception
+     */
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         CodecOutputList out = null;
         try {
-            if (acceptOutboundMessage(msg)) {
+            if (acceptOutboundMessage(msg)) {// 当前ChannelOutboundHandler是否需要对此类型的msg进行处理
                 out = CodecOutputList.newInstance();
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
                 try {
+                    //进行编码
                     encode(ctx, cast, out);
                 } finally {
+                    //释放资料
                     ReferenceCountUtil.release(cast);
                 }
 
@@ -99,6 +111,7 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
                             StringUtil.simpleClassName(this) + " must produce at least one message.");
                 }
             } else {
+                //如果不需要处理当前msg,直接转交给下一个ChannelOutboundHandler
                 ctx.write(msg, promise);
             }
         } catch (EncoderException e) {
@@ -142,7 +155,7 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
     /**
      * Encode from one message to an other. This method will be called for each written message that can be handled
      * by this encoder.
-     *
+     * 具体的编码方法，供子类实现
      * @param ctx           the {@link ChannelHandlerContext} which this {@link MessageToMessageEncoder} belongs to
      * @param msg           the message to encode to an other one
      * @param out           the {@link List} into which the encoded msg should be added

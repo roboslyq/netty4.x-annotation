@@ -23,7 +23,9 @@ import io.netty.util.internal.StringUtil;
  *
  */
 public class DefaultByteBufHolder implements ByteBufHolder {
-
+    /**
+     * 当前Holder持有的ByteBuf
+     */
     private final ByteBuf data;
 
     public DefaultByteBufHolder(ByteBuf data) {
@@ -33,6 +35,10 @@ public class DefaultByteBufHolder implements ByteBufHolder {
         this.data = data;
     }
 
+    /**
+     * 返回ByteBuf，但检查了引用计数器
+     * @return
+     */
     @Override
     public ByteBuf content() {
         if (data.refCnt() <= 0) {
