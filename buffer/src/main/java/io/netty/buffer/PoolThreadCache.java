@@ -161,6 +161,7 @@ final class PoolThreadCache {
 
     /**
      * Try to allocate a tiny buffer out of the cache. Returns {@code true} if successful {@code false} otherwise
+     * 默认返回false
      */
     boolean allocateTiny(PoolArena<?> area, PooledByteBuf<?> buf, int reqCapacity, int normCapacity) {
         return allocate(cacheForTiny(area, normCapacity), buf, reqCapacity);
@@ -186,6 +187,7 @@ final class PoolThreadCache {
             // no cache found so just return false here
             return false;
         }
+        //默认返回false
         boolean allocated = cache.allocate(buf, reqCapacity);
         if (++ allocations >= freeSweepAllocationThreshold) {
             allocations = 0;
@@ -304,10 +306,17 @@ final class PoolThreadCache {
         cache.trim();
     }
 
+    /**
+     * Tiny缓存
+     * @param area
+     * @param normCapacity
+     * @return
+     */
     private MemoryRegionCache<?> cacheForTiny(PoolArena<?> area, int normCapacity) {
+        // 默认 normCapacity = normCapacity ,idx = 16
         int idx = PoolArena.tinyIdx(normCapacity);
         if (area.isDirect()) {
-            return cache(tinySubPageDirectCaches, idx);
+            return cache(tinySubPageDirectCaches, idx); // tinySubPageDirectCaches:默认为32
         }
         return cache(tinySubPageHeapCaches, idx);
     }
@@ -401,9 +410,10 @@ final class PoolThreadCache {
 
         /**
          * Allocate something out of the cache if possible and remove the entry from the cache.
+         * 默认返回false
          */
         public final boolean allocate(PooledByteBuf<T> buf, int reqCapacity) {
-            Entry<T> entry = queue.poll();
+            Entry<T> entry = queue.poll();//默认queue为空，所以enrty也为空，所以返回false
             if (entry == null) {
                 return false;
             }

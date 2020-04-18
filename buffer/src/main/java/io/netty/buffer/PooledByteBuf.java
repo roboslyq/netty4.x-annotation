@@ -32,11 +32,16 @@ import java.nio.ByteOrder;
  * @param <T>
  */
 abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
-
+    /**
+     * Recycler:具体的池化技术实现
+     */
     private final Recycler.Handle<PooledByteBuf<T>> recyclerHandle;
 
     protected PoolChunk<T> chunk;
     protected long handle;
+    /**
+     * 真正的内存，用来保存数据。可能为DirectByteBuf或者byte[]
+     */
     protected T memory;
     protected int offset;
     protected int length;
@@ -59,13 +64,14 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
     void initUnpooled(PoolChunk<T> chunk, int length) {
         init0(chunk, null, 0, chunk.offset, length, length, null);
     }
-
+    /** 初始化ByteBuf */
     private void init0(PoolChunk<T> chunk, ByteBuffer nioBuffer,
                        long handle, int offset, int length, int maxLength, PoolThreadCache cache) {
         assert handle >= 0;
         assert chunk != null;
 
         this.chunk = chunk;
+        //Chunk中申请的真实内存
         memory = chunk.memory;
         tmpNioBuf = nioBuffer;
         allocator = chunk.arena.parent;

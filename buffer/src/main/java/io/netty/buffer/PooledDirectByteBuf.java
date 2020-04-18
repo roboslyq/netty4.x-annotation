@@ -28,8 +28,11 @@ import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
 final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
-
+    /**
+     * Recycler:具体的池化技术实现
+     */
     private static final Recycler<PooledDirectByteBuf> RECYCLER = new Recycler<PooledDirectByteBuf>() {
+        //重写Recycler的newObject方法
         @Override
         protected PooledDirectByteBuf newObject(Handle<PooledDirectByteBuf> handle) {
             return new PooledDirectByteBuf(handle, 0);

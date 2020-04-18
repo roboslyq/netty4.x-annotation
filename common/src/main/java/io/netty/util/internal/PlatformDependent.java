@@ -253,6 +253,8 @@ public final class PlatformDependent {
     /**
      * Return {@code true} if {@code sun.misc.Unsafe} was found on the classpath and can be used for accelerated
      * direct memory access.
+     * 判断当前JVM平台是否支持 {@code sun.misc.Unsafe}，如果支持，则可以直接使用Unsafe来操作直接内存。
+     * 子类可重写。
      */
     public static boolean hasUnsafe() {
         return UNSAFE_UNAVAILABILITY_CAUSE == null;
@@ -618,9 +620,10 @@ public final class PlatformDependent {
      */
     public static ByteBuffer allocateDirectNoCleaner(int capacity) {
         assert USE_DIRECT_BUFFER_NO_CLEANER;
-
+        //移动内存指针
         incrementMemoryCounter(capacity);
         try {
+            // 使用sun.misc.Unsafe分配具体的堆外内存，返回的是ByteBuffer
             return PlatformDependent0.allocateDirectNoCleaner(capacity);
         } catch (Throwable e) {
             decrementMemoryCounter(capacity);
@@ -659,6 +662,10 @@ public final class PlatformDependent {
         decrementMemoryCounter(capacity);
     }
 
+    /**
+     * 移动内存指针
+     * @param capacity
+     */
     private static void incrementMemoryCounter(int capacity) {
         if (DIRECT_MEMORY_COUNTER != null) {
             long newUsedMemory = DIRECT_MEMORY_COUNTER.addAndGet(capacity);
@@ -949,6 +956,10 @@ public final class PlatformDependent {
         return "root".equals(username) || "toor".equals(username);
     }
 
+    /**
+     * 判断Unsafe是否可用
+     * @return
+     */
     private static Throwable unsafeUnavailabilityCause0() {
         if (isAndroid()) {
             logger.debug("sun.misc.Unsafe: unavailable (Android)");
@@ -1001,6 +1012,10 @@ public final class PlatformDependent {
         return vmName.equals("IKVM.NET");
     }
 
+    /**
+     * 通过JVM maxDirectMemory 参数,控制最大堆外内存
+     * @return
+     */
     private static long maxDirectMemory0() {
         long maxDirectMemory = 0;
 

@@ -18,6 +18,7 @@ import java.util.Collection;
 
 /**
  * A grab-bag of useful utility methods.
+ * 一个混杂的实用的工具方法集
  */
 public final class ObjectUtil {
 

@@ -39,6 +39,10 @@ import static io.netty.util.internal.StringUtil.EMPTY_STRING;
 import static io.netty.util.internal.StringUtil.NEWLINE;
 import static io.netty.util.internal.StringUtil.simpleClassName;
 
+/**
+ * 泄露检测接口用于实现对需要手动释放的资源对象的监控
+ * @param <T>
+ */
 public class ResourceLeakDetector<T> {
 
     private static final String PROP_LEVEL_OLD = "io.netty.leakDetectionLevel";
@@ -164,6 +168,7 @@ public class ResourceLeakDetector<T> {
     }
 
     /** the collection of active resources */
+    /** */
     private final Set<DefaultResourceLeak<?>> allLeaks =
             Collections.newSetFromMap(new ConcurrentHashMap<DefaultResourceLeak<?>, Boolean>());
 
@@ -341,6 +346,13 @@ public class ResourceLeakDetector<T> {
     }
 
     @SuppressWarnings("deprecation")
+    /**
+     * 1、该接口只有一个实现，就是io.netty.util.ResourceLeakDetector.DefaultResourceLeak，该实现继承了WeakReference。
+     *    每一个DefaultResourceLeak会与一个需要监控的资源对象关联，同时关联着一个引用队列。
+     * 2、当资源对象被GC回收后，与之关联的DefaultResourceLeak就会进入引用队列。通过检查引用队列中的DefaultResourceLeak实例的状
+     *    态（release方法的调用会导致状态变更），就能确定在资源对象被GC前，是否执行了手动关闭的相关方法，
+     *    从而判断是否存在泄漏可能。
+    a */
     private static final class DefaultResourceLeak<T>
             extends WeakReference<Object> implements ResourceLeakTracker<T>, ResourceLeak {
 

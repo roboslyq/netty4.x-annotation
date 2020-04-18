@@ -22,18 +22,22 @@ package io.netty.buffer;
  *  基于内存池技术字节缓冲分配区，基于普通字节的缓冲区
  */
 public interface ByteBufAllocator {
-
+    /**
+     * 默认的ByteBuf内存分配器，在类{@link ByteBufUtil}中进行初始化实现
+     */
     ByteBufAllocator DEFAULT = ByteBufUtil.DEFAULT_ALLOCATOR;
 
     /**
      * Allocate a {@link ByteBuf}. If it is a direct or heap buffer
      * depends on the actual implementation.
+     * 申请一个ByteBuf缓冲区,具体是direct或heap类型由子类具体实现决定.
      */
     ByteBuf buffer();
 
     /**
      * Allocate a {@link ByteBuf} with the given initial capacity.
      * If it is a direct or heap buffer depends on the actual implementation.
+     * 申请一个指定初始容量的ByteBuf,具体是direct或heap类型由子类具体实现决定。
      */
     ByteBuf buffer(int initialCapacity);
 
@@ -41,26 +45,31 @@ public interface ByteBufAllocator {
      * Allocate a {@link ByteBuf} with the given initial capacity and the given
      * maximal capacity. If it is a direct or heap buffer depends on the actual
      * implementation.
+     * 申请一个指定初始容量和最大容量的ByteBuf,具体是direct或heap类型由子类具体实现决定。
      */
     ByteBuf buffer(int initialCapacity, int maxCapacity);
 
     /**
      * Allocate a {@link ByteBuf}, preferably a direct buffer which is suitable for I/O.
+     * 申请一个和I/O相关的direct ByteBuf
      */
     ByteBuf ioBuffer();
 
     /**
      * Allocate a {@link ByteBuf}, preferably a direct buffer which is suitable for I/O.
+     * 申请指定初始容量一个和I/O相关的direct ByteBuf
      */
     ByteBuf ioBuffer(int initialCapacity);
 
     /**
      * Allocate a {@link ByteBuf}, preferably a direct buffer which is suitable for I/O.
+     * 申请一个指定初始容量和最大容量的I/O相关的direct ByteBuf
      */
     ByteBuf ioBuffer(int initialCapacity, int maxCapacity);
 
     /**
      * Allocate a heap {@link ByteBuf}.
+     * 申请一个堆 ByteBuf
      */
     ByteBuf heapBuffer();
 
@@ -72,16 +81,19 @@ public interface ByteBufAllocator {
     /**
      * Allocate a heap {@link ByteBuf} with the given initial capacity and the given
      * maximal capacity.
+     * 申请一个指定初始容量和最大容易的堆Buf.
      */
     ByteBuf heapBuffer(int initialCapacity, int maxCapacity);
 
     /**
      * Allocate a direct {@link ByteBuf}.
+     * 申请一个directBuffer
      */
     ByteBuf directBuffer();
 
     /**
      * Allocate a direct {@link ByteBuf} with the given initial capacity.
+     * 申请一个指定初始容量的DirectBuf
      */
     ByteBuf directBuffer(int initialCapacity);
 
@@ -94,22 +106,26 @@ public interface ByteBufAllocator {
     /**
      * Allocate a {@link CompositeByteBuf}.
      * If it is a direct or heap buffer depends on the actual implementation.
+     * 申请一个CompositeByteBuf,具体是堆还是Direct由子类具体实现
      */
     CompositeByteBuf compositeBuffer();
 
     /**
      * Allocate a {@link CompositeByteBuf} with the given maximum number of components that can be stored in it.
      * If it is a direct or heap buffer depends on the actual implementation.
+     * 申请一个指定最大个Buffers个数的CompositeByteBuf,具体是堆还是Direct由子类具体实现
      */
     CompositeByteBuf compositeBuffer(int maxNumComponents);
 
     /**
      * Allocate a heap {@link CompositeByteBuf}.
+     * 申请一个堆CompositeByteBuf
      */
     CompositeByteBuf compositeHeapBuffer();
 
     /**
      * Allocate a heap {@link CompositeByteBuf} with the given maximum number of components that can be stored in it.
+     * 申请一个最大个Buffers个数堆CompositeByteBuf
      */
     CompositeByteBuf compositeHeapBuffer(int maxNumComponents);
 
@@ -125,12 +141,14 @@ public interface ByteBufAllocator {
 
     /**
      * Returns {@code true} if direct {@link ByteBuf}'s are pooled
+     * 是不是Direct Buf
      */
     boolean isDirectBufferPooled();
 
     /**
      * Calculate the new capacity of a {@link ByteBuf} that is used when a {@link ByteBuf} needs to expand by the
      * {@code minNewCapacity} with {@code maxCapacity} as upper-bound.
+     * 扩容时，判断新的所需最小容量
      */
     int calculateNewCapacity(int minNewCapacity, int maxCapacity);
  }

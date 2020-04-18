@@ -25,11 +25,25 @@ import io.netty.util.internal.StringUtil;
 
 /**
  * Skeletal {@link ByteBufAllocator} implementation to extend.
+ * {@link ByteBufAllocator}的抽象实现
+ *
  */
 public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
+    /**
+     * ByteBuf的默认初始容量
+     */
     static final int DEFAULT_INITIAL_CAPACITY = 256;
+    /**
+     * 默认最大容量（最大整数，约等于无限制）
+     */
     static final int DEFAULT_MAX_CAPACITY = Integer.MAX_VALUE;
+    /**
+     * 当ByteBuf为CompositeByteBuf时，允许的被组合ByteBuf数量
+     */
     static final int DEFAULT_MAX_COMPONENTS = 16;
+    /**
+     * 扩容阀值：阈值为4mb<扩容最小单位是4M>，见方法calculateNewCapacity(int minNewCapacity, int maxCapacity)
+     */
     static final int CALCULATE_THRESHOLD = 1048576 * 4; // 4 MiB page
 
     static {
@@ -80,6 +94,9 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return buf;
     }
 
+    /**
+     * 是否是直接内存
+     */
     private final boolean directByDefault;
     private final ByteBuf emptyBuf;
 
@@ -168,6 +185,10 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return newHeapBuffer(initialCapacity, maxCapacity);
     }
 
+    /**
+     * 使用默认值申请direct内存
+     * @return
+     */
     @Override
     public ByteBuf directBuffer() {
         return directBuffer(DEFAULT_INITIAL_CAPACITY, DEFAULT_MAX_CAPACITY);
@@ -178,12 +199,19 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return directBuffer(initialCapacity, DEFAULT_MAX_CAPACITY);
     }
 
+    /**
+     * 申请Direct Buffer
+     * @param initialCapacity
+     * @param maxCapacity
+     * @return
+     */
     @Override
     public ByteBuf directBuffer(int initialCapacity, int maxCapacity) {
         if (initialCapacity == 0 && maxCapacity == 0) {
             return emptyBuf;
         }
         validate(initialCapacity, maxCapacity);
+        // 创建Direct Buffer
         return newDirectBuffer(initialCapacity, maxCapacity);
     }
 

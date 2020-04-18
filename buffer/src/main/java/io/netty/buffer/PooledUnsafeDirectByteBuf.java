@@ -36,12 +36,21 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
         }
     };
 
+    /**
+     * 创建ByteBuf实例
+     * @param maxCapacity
+     * @return
+     */
     static PooledUnsafeDirectByteBuf newInstance(int maxCapacity) {
+        /*
+         * RECYCLER: 对象池技术，是另一个体系。此处不具体扩展分析。
+         */
         PooledUnsafeDirectByteBuf buf = RECYCLER.get();
+        //从 对象池中获取对象，需要reuse后才能使用，否则可能有之前操作保存的相关数据。
         buf.reuse(maxCapacity);
         return buf;
     }
-
+    /** 内存地址，写数据时使用此地址偏移即可 */
     private long memoryAddress;
 
     private PooledUnsafeDirectByteBuf(Recycler.Handle<PooledUnsafeDirectByteBuf> recyclerHandle, int maxCapacity) {

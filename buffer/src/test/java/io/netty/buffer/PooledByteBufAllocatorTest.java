@@ -38,6 +38,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * ByteBuf测试
+ */
 public class PooledByteBufAllocatorTest extends AbstractByteBufAllocatorTest<PooledByteBufAllocator> {
 
     @Override
@@ -82,6 +85,15 @@ public class PooledByteBufAllocatorTest extends AbstractByteBufAllocatorTest<Poo
     public void testPooledUnsafeHeapBufferAndUnsafeDirectBuffer() {
         PooledByteBufAllocator allocator = newAllocator(true);
         ByteBuf directBuffer = allocator.directBuffer();
+        directBuffer.writeChar('h');
+        directBuffer.writeChar('e');
+        directBuffer.writeChar('l');
+        directBuffer.writeChar('l');
+        directBuffer.writeChar('o');
+        while (directBuffer.isReadable()){
+
+            System.out.print(directBuffer.readChar());
+        }
         assertInstanceOf(directBuffer,
                 PlatformDependent.hasUnsafe() ? PooledUnsafeDirectByteBuf.class : PooledDirectByteBuf.class);
         directBuffer.release();

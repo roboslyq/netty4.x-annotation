@@ -445,6 +445,11 @@ final class PlatformDependent0 {
         return newDirectBuffer(UNSAFE.reallocateMemory(directBufferAddress(buffer), capacity), capacity);
     }
 
+    /**
+     * 分配具体的堆外内存,使用Unsafe
+     * @param capacity
+     * @return
+     */
     static ByteBuffer allocateDirectNoCleaner(int capacity) {
         // Calling malloc with capacity of 0 may return a null ptr or a memory address that can be used.
         // Just use 1 to make it safe to use in all cases:
@@ -466,10 +471,25 @@ final class PlatformDependent0 {
         }
     }
 
+    /**
+     * 详情见PlatformDependent0#allocateDirectNoCleaner
+     * @param address 对应Unsafe中申请内存的地址，可以通过偏移直接对内存进行相关操作。
+     * @param capacity 申请总内存大小(总偏移量)
+     * @return
+     */
     static ByteBuffer newDirectBuffer(long address, int capacity) {
         ObjectUtil.checkPositiveOrZero(capacity, "capacity");
 
         try {
+            //通过返射创建DirectByteBuffer实现
+            /*JDK中的DirectByteBuffer有以下构造函数:
+            private DirectByteBuffer(long addr, int cap) {
+                super(-1, 0, cap, cap);
+                address = addr;
+                cleaner = null;
+                att = null;
+            }
+             */
             return (ByteBuffer) DIRECT_BUFFER_CONSTRUCTOR.newInstance(address, capacity);
         } catch (Throwable cause) {
             // Not expected to ever throw!

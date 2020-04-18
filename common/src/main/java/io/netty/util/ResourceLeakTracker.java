@@ -15,6 +15,12 @@
  */
 package io.netty.util;
 
+/**
+ * 针对需要手动关闭的资源对象追踪，心免内存泄露
+ *   原理 ：该接口提供了一个release方法。在资源对象关闭需要调用release方法。如果从未调用release方法则被认为存在资源泄露。
+ * 默认实现：该接口只有一个实现，就是io.netty.util.ResourceLeakDetector.DefaultResourceLeak，该实现继承了WeakReference。每一个DefaultResourceLeak会与一个需要监控的资源对象关联，同时关联着一个引用队列。
+ * @param <T>
+ */
 public interface ResourceLeakTracker<T>  {
 
     /**

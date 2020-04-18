@@ -1104,6 +1104,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    /**
+     * 写一个int 类型的value
+     * 底层使用了Unsafe技术，直接使用内存地址+offset偏移量完成操作。
+     * @param value
+     * @return
+     */
     @Override
     public ByteBuf writeShort(int value) {
         ensureWritable0(2);
@@ -1167,7 +1173,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         writerIndex += 8;
         return this;
     }
-
+    /** 写字符 **/
     @Override
     public ByteBuf writeChar(int value) {
         writeShort(value);
