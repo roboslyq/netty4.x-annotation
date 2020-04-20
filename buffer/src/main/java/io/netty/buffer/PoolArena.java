@@ -293,7 +293,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         for (int i = 0; i < tinySubpagePools.length; i ++) {
             tinySubpagePools[i] = newSubpagePoolHead(pageSize);
         }
-        // 构建smallSubpagePools，默认长度只有4，只有一个Head元素
+        // 构建numSmallSubpagePools，并初始化Head节点
         numSmallSubpagePools = pageShifts - 9;
         smallSubpagePools = newSubpagePoolArray(numSmallSubpagePools);
         for (int i = 0; i < smallSubpagePools.length; i ++) {
