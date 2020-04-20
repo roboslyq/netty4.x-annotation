@@ -96,7 +96,9 @@ public class PooledByteBufAllocatorTest extends AbstractByteBufAllocatorTest<Poo
         }
         assertInstanceOf(directBuffer,
                 PlatformDependent.hasUnsafe() ? PooledUnsafeDirectByteBuf.class : PooledDirectByteBuf.class);
-        directBuffer.release();
+        //directBuffer.release();
+        //再次申请
+        ByteBuf directBuffer1 = allocator.directBuffer();
 
         ByteBuf heapBuffer = allocator.heapBuffer();
         assertInstanceOf(heapBuffer,

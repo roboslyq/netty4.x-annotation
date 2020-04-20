@@ -156,6 +156,10 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
         return prevList.move(chunk);
     }
 
+    /**
+     * 将一个Chunk添加到ChunkList链表中,通过循环递归，找到合适的使用率位置插入.
+     * @param chunk
+     */
     void add(PoolChunk<T> chunk) {
         if (chunk.usage() >= maxUsage) {
             nextList.add(chunk);
@@ -166,6 +170,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
 
     /**
      * Adds the {@link PoolChunk} to this {@link PoolChunkList}.
+     * 插入到ChunkList链表中.
      */
     void add0(PoolChunk<T> chunk) {
         chunk.parent = this;

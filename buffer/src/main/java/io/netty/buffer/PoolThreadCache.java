@@ -313,7 +313,7 @@ final class PoolThreadCache {
      * @return
      */
     private MemoryRegionCache<?> cacheForTiny(PoolArena<?> area, int normCapacity) {
-        // 默认 normCapacity = normCapacity ,idx = 16
+        // 默认 normCapacity = normCapacity ,idx = 16<如果多次申请的nornCapacity一致，那么这个值不会变化>
         int idx = PoolArena.tinyIdx(normCapacity);
         if (area.isDirect()) {
             return cache(tinySubPageDirectCaches, idx); // tinySubPageDirectCaches:默认为32

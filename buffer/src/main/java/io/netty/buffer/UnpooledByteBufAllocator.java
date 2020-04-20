@@ -84,6 +84,12 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
                 new InstrumentedUnpooledHeapByteBuf(this, initialCapacity, maxCapacity);
     }
 
+    /**
+     * 直接申请内存并返回
+     * @param initialCapacity
+     * @param maxCapacity
+     * @return
+     */
     @Override
     protected ByteBuf newDirectBuffer(int initialCapacity, int maxCapacity) {
         final ByteBuf buf;
@@ -93,6 +99,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         } else {
             buf = new InstrumentedUnpooledDirectByteBuf(this, initialCapacity, maxCapacity);
         }
+        // Netty的引用计数，防止内存泄漏
         return disableLeakDetector ? buf : toLeakAwareBuffer(buf);
     }
 

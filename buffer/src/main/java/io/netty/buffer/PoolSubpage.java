@@ -154,24 +154,25 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
      */
     long allocate() {
         // 如果elemSize为0，则直接返回0
-        if (elemSize == 0) {
+        if (elemSize == 0) {//默认为256B即
             return toHandle(0);
         }
         // 如果当前PoolSubpage没有可用的元素，或者已经被销毁了，则返回-1
+        // 如果两次申请均为256B内存，第1次numAvail = 32,第2次numAvail = 31
         if (numAvail == 0 || !doNotDestroy) {
             return -1;
         }
-        // 计算下一个可用的内存块的位置
+        // 计算下一个可用的内存块的位置：第1次为0，第2次申请返回1
         final int bitmapIdx = getNextAvail();
-        // 获取该内存块是bitmap数组中的第几号元素
-        int q = bitmapIdx >>> 6;
+        // 获取该内存块是bitmap数组中的第几号元素（除以32）
+        int q = bitmapIdx >>> 6;//第1次为0，
         // 获取该内存块是bitmap数组中q号位元素的第多少位
-        int r = bitmapIdx & 63;
+        int r = bitmapIdx & 63;//第1次为0，
         assert (bitmap[q] >>> r & 1) == 0;
         // 将bitmap数组中q号元素的目标内存块位置标记为1，表示已经使用
-        bitmap[q] |= 1L << r;
+        bitmap[q] |= 1L << r;//第1次 bitmpa[1,0,0,0,0,0,0,0]，第2次，bitMap[3,0,0,0,0,0,0,0,0]
         // 如果当前PoolSubpage中可用的内存块为0，则将其从链表中移除
-        if (-- numAvail == 0) {
+        if (-- numAvail == 0) {//如果申请256B内存，numAvail = 32, --numAvail = 31
             removeFromPool();
         }
         // 将得到的bitmapIdx放到返回值的高32位中
@@ -225,10 +226,20 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         }
     }
 
+    /**
+     * PoolSubpage添加到链中,比如this为PoolSubpage3.
+     * 插入之前head <--> PoolSubPage1<-->PoolSubPage2
+     * 插入之后：head<-->PoolSubpage3<--> PoolSubPage1<-->PoolSubPage2
+     * @param head
+     */
     private void addToPool(PoolSubpage<T> head) {
+        //在添加到链之前，当前节点head的prev和next都为空
         assert prev == null && next == null;
+        //将现在的head设置为prev(即在head后面插入)
         prev = head;
+        // 将next设置为head的next
         next = head.next;
+        //把自己插入在head 和 head.next之间
         next.prev = this;
         head.next = this;
     }
@@ -250,7 +261,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
      * @return
      */
     private int getNextAvail() {
-        int nextAvail = this.nextAvail;
+        int nextAvail = this.nextAvail;//第1次为0，第2次进入时为-1，因为第1次已经申请了。占了这个位置
         // 如果是第一次尝试获取数据，则直接返回bitmap第0号位置的long的第0号元素，
         // 这里nextAvail初始时为0，在第一次申请之后就会变为-1，后面将不再发生变化，
         // 通过该变量可以判断是否是第一次尝试申请内存
@@ -268,7 +279,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
      * @return
      */
     private int findNextAvail() {
-        final long[] bitmap = this.bitmap;
+        final long[] bitmap = this.bitmap;//第1次{0,0,0,0,0,0,0,0},第2次{1,0,0,0,0,0,0,0},第3次{1,1,0,0,0,0,0,0}
         final int bitmapLength = this.bitmapLength;
         // 这里的基本思路就是对bitmap数组进行遍历，首先判断其是否有未使用的内存是否全部被使用过
         // 如果有未被使用的内存，那么就在该元素中找可用的内存块的位置

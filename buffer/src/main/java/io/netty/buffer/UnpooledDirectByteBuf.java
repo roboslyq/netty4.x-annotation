@@ -104,8 +104,10 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 
     /**
      * Allocate a new direct {@link ByteBuffer} with the given initialCapacity.
+     * 申请一个没有对象池的 {@link ByteBuffer}
      */
     protected ByteBuffer allocateDirect(int initialCapacity) {
+        // 以下方法直接是JDK中的方法，因为没有对象池，所以简单的使用JDK中的方法进行分配即可。
         return ByteBuffer.allocateDirect(initialCapacity);
     }
 

@@ -36,14 +36,14 @@ import static java.lang.Math.max;
  * 因此，需要抽象出一套概念，来管理这一块内存。
  * (1)需要对内存分块，以便分给不同的对象使用。并且块分等级，这样可以实现不同大小内存块申请时，进行相关优化。
  *    块有Arena,Chunk,SubPage..然后这些可以构造链表，组成更大的块。
- *
  *    Arena,Chunk,SubPage是从三个不同层面来实现对内存的抽象。但它们描述的都是同一块内存。
- *
+ *    netty总的内存池是一个数组，数组每一个成员是一个独立的内存池。相当于一个国家(netty)有多个省(poolArena)分别自治管理不同的地区。
  * (2)需要标识哪些内存被用，哪些没用，然后回收(最简单位图思想)
  *
  *
  * (99)参考jemalloc
  ------------------------------------------------------------
+
  * 1、PoolArena是一个抽象类，其子类为HeapArena和DirectArena对应堆内存(heap buffer)和堆外直接内存(direct buffer)，
  *  除了操作的内存(byte[]和ByteBuffer)不同外两个类完全一致）。
  * 2、该类的实现接口是PoolArenaMetric，是一些信息的统计分析。
@@ -166,14 +166,16 @@ abstract class PoolArena<T> implements PoolArenaMetric {
     // 用于对齐内存
     final int directMemoryCacheAlignmentMask;
     /*
-     * 第一部分内存池：tinySubpagePools,本质PoolSubpage数组(PoolSubpage本身是一个链表),默认长度32。初始状态每一个元素都是空的。
+     * 第一部分内存池：tinySubpagePools,本质PoolSubpage数组(PoolSubpage本身是一个链表),默认长度32。
+     * 初始状态，只有一个Head元素，没有链表。
      *  1、tinySubpagePools数组中主要是保存大小小于等于496byte的内存，其将0~496byte按照16个字节一个等级拆分成了31等，
      *     并且将其保存在了tinySubpagePools的1~31号位中。
      *
-     *  2、由于PoolSubpage本身是一个链表，也就是说，在tinySubpagePools数组中，第1号位中存储的PoolSubpage维护的内存大小为16byte，
+     *  2、由于PoolSubpage本身是一个链表，也就是说，在tinySubpagePools数组中，
+     *     第1号位中存储的PoolSubpage维护的内存大小为16byte，
      *     第2号位中存储的PoolSubpage维护的内存大小为32byte，
      *     第3号位中存储的PoolSubpage维护的内存大小为48byte，
-     *     依次类推，第31号位中存储的PoolSubpage维护的内存大小为496byte。
+     *     依次类推，每次以16Byte为单位递增，当到第31号位中存储的PoolSubpage维护的内存大小为496byte。
      */
     private final PoolSubpage<T>[] tinySubpagePools;
     /*
@@ -286,11 +288,12 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         directMemoryCacheAlignmentMask = cacheAlignment - 1;
         //该变量用于判断申请的内存大小与page之间的关系，是大于，还是小于
         subpageOverflowMask = ~(pageSize - 1);
+        //构建tinySubpagePools的head元素（可以类比Map的key-value，当key冲突时就形成链表）
         tinySubpagePools = newSubpagePoolArray(numTinySubpagePools);
         for (int i = 0; i < tinySubpagePools.length; i ++) {
             tinySubpagePools[i] = newSubpagePoolHead(pageSize);
         }
-
+        // 构建smallSubpagePools，默认长度只有4，只有一个Head元素
         numSmallSubpagePools = pageShifts - 9;
         smallSubpagePools = newSubpagePoolArray(numSmallSubpagePools);
         for (int i = 0; i < smallSubpagePools.length; i ++) {
@@ -324,8 +327,16 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         chunkListMetrics = Collections.unmodifiableList(metrics);
     }
 
+    /**
+     * 构造tinySubpagePools和smallSubpagePools中的元素。此时数组中的每一个元素都只有一个Head节点，还没有形成链。
+     * 可以类没有Map的节点中只保存了一个元素，而没有冲突。所以还没有形成链。一旦有同一hash值的Key存入，就会形成链。
+     * @param pageSize
+     * @return
+     */
     private PoolSubpage<T> newSubpagePoolHead(int pageSize) {
+        // 这个构造函数是专门给Head使用的，poolSubpage其他变量均为null
         PoolSubpage<T> head = new PoolSubpage<T>(pageSize);
+        // head形成回环可以判断这是一个空链
         head.prev = head;
         head.next = head;
         return head;
@@ -346,8 +357,9 @@ abstract class PoolArena<T> implements PoolArenaMetric {
      * @return
      */
     PooledByteBuf<T> allocate(PoolThreadCache cache, int reqCapacity, int maxCapacity) {
-        // 此时，buf的readerIndex ,writerIndex和capacity都为0，还未初始化(未分配内存)
-        // 即此时还不能读写
+        // 此时，buf的readerIndex ,writerIndex和capacity都为0，还未初始化(未分配内存).
+        // 同时真正的内存memory = null 以及 memoryAddress = 0
+        // 所以此时还buf不能读写
         PooledByteBuf<T> buf = newByteBuf(maxCapacity);
         // 使用对应的方式为创建的ByteBuf初始化相关内存数据，我们这里是以DirectArena进行讲解，因而这里
         // 是通过其allocate()方法申请内存
@@ -393,10 +405,10 @@ abstract class PoolArena<T> implements PoolArenaMetric {
 
     /**
      * 分配内存入口
-     * 1、首先会判断目标内存是在哪个内存层级的，比如tiny、small或者normal，
-     * 2、然后根据目标层级的分配方式对目标内存进行扩容。
-     * 3、接着首先会尝试从当前线程的缓存中申请目标内存，如果能够申请到，则直接返回，如果不能申请到，则在当前层级中申请。
-     * 4、对于tiny和small层级的内存申请，如果无法申请到，则会将申请动作交由PoolChunkList进行。
+     *      1、首先会判断目标内存是在哪个内存层级的，比如tiny、small或者normal，
+     *      2、然后根据目标层级的分配方式对目标内存进行扩容。
+     *      3、接着首先会尝试从当前线程的缓存中申请目标内存，如果能够申请到，则直接返回，如果不能申请到，则在当前层级中申请。
+     *      4、对于tiny和small层级的内存申请，如果无法申请到，则会将申请动作交由PoolChunkList进行。
      * @param cache
      * @param buf
      * @param reqCapacity
@@ -446,9 +458,10 @@ abstract class PoolArena<T> implements PoolArenaMetric {
              */
             synchronized (head) {
                 final PoolSubpage<T> s = head.next;
+                // 因为 table[tableIdx]中的元素初始化只有一个节点，还没有形成链。并且这个节点自身形成循环引用，所以此时head = head.next
                 // s != head就证明当前PoolSubpage链表中存在可用的PoolSubpage，并且一定能够申请到内存，
                 // 因为已经耗尽的PoolSubpage是会从链表中移除的
-                if (s != head) {//默认false
+                if (s != head) {//第一次：false 如果第一次分配之后没有回收，那么后续为True
                     assert s.doNotDestroy && s.elemSize == normCapacity;
                     // 从PoolSubpage中申请内存,这里为什么一定可以找到可用的内存块（handle>=0）呢？
                     // 因为在io.netty.buffer.PoolSubpage#allocate的时候，如果可用内存块为0了会将该page从链表中remove，所以保证了head.next一定有可用的内存

@@ -118,6 +118,10 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         emptyBuf = new EmptyByteBuf(this);
     }
 
+    /**
+     * 统一入口： 使用默认值申请direct或heap 内存
+     * @return
+     */
     @Override
     public ByteBuf buffer() {
         if (directByDefault) {
@@ -186,7 +190,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
     }
 
     /**
-     * 使用默认值申请direct内存
+     *PooledByteBufAllocator和UnpooledByteBufAllocator统一入口： 使用默认值申请direct内存
      * @return
      */
     @Override
@@ -211,7 +215,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
             return emptyBuf;
         }
         validate(initialCapacity, maxCapacity);
-        // 创建Direct Buffer
+        // 创建Direct Buffer<具体创建由两个子类实现：UnpooledByteBufAllocator 和 PooledByteBufAllocator>
         return newDirectBuffer(initialCapacity, maxCapacity);
     }
 

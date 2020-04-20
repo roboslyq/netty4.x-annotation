@@ -42,11 +42,15 @@
 - PoolChunkMetric.java
 - PooledByteBuf.java
 - PooledByteBufAllocator.java
+- PooledDirectByteBuf.java
 - PooledHeapByteBuf.java
+- PooledUnsafeDirectByteBuf.java
 - PoolSubpage.java
+- PoolThreadCache.java
 - ReadOnlyByteBuf.java
 - Unpooled.java
 - UnpooledHeapByteBuf.java
+  
 
 ##  common
 
@@ -64,11 +68,17 @@ EventExecutorGroup.java
 - FastThreadLocal
   - 对JDK的ThreadLocal进行优化扩展
 
+
+
 FastThreadLocal.java
 FastThreadLocalRunnable
 FastThreadLocalRunnable.java
 InternalLoggerFactory.java
 MultithreadEventExecutorGroup.java
+
+ObjectUtil.java
+
+
 OrderedEventExecutor.java
 
 - Recycler
@@ -77,6 +87,11 @@ OrderedEventExecutor.java
     - Handle
     - Stack
     - WeakOrderQueue
+
+PlatformDependent.java
+PlatformDependent0.java
+ResourceLeakDetector.java
+ResourceLeakTracker.java
 
 SingleThreadEventExecutor.java
 SocketUtils.java
