@@ -44,7 +44,9 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
  * A virtual buffer which shows multiple buffers as a single merged buffer.  It is recommended to use
  * {@link ByteBufAllocator#compositeBuffer()} or {@link Unpooled#wrappedBuffer(ByteBuf...)} instead of calling the
  * constructor explicitly.
- * 组合 ByteBuf
+ * 组合 ByteBuf。
+ * CompositeByteBuf 在聚合时使用，多个buffer合并时，不需要copy。
+ * 通过CompositeByteBuf 可以把需要合并的bytebuf 组合起来，对外提供统一的readindex和writerindex
  */
 public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements Iterable<ByteBuf> {
 
@@ -56,6 +58,11 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
     private final int maxNumComponents;
 
     private int componentCount;
+    /**
+     * Component是ByteBuf的包装类,里面包含原生的ByteBuf。这个数组存放着当前聚合的所有的ByteBuf。
+     * 曾经有一个版本,这里是List,不是数组:
+     *    private final List<Component> components;
+     */
     private Component[] components; // resized when needed
 
     private boolean freed;
@@ -270,14 +277,17 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
 
     /**
      * Precondition is that {@code buffer != null}.
+     * 添加一个新的Component
      */
     private int addComponent0(boolean increaseWriterIndex, int cIndex, ByteBuf buffer) {
         assert buffer != null;
         boolean wasAdded = false;
         try {
+            //检查cindex是否超过ComponentList的容量
             checkComponentIndex(cIndex);
 
             // No need to consolidate - just add a component to the list.
+            //封装为Component，采用大端序
             Component c = newComponent(buffer, 0);
             int readableBytes = c.length();
 
@@ -1844,7 +1854,12 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
         return result + ", components=" + componentCount + ')';
     }
 
-    private static final class Component {
+    /**
+     * CompositeByteBuf只是一个逻辑上的组合buffer，内部实际上是多个独立的buffer。
+     * 因此，组合buffer的readableBytes必然是所有buffer的所有可读字节之和。
+     * 每当读完一个buffer之后，就必然要取下个offset与前一个endOffset相同的buffer去读取数据，而不是在当前readableBytes==0的buffer内继续读取。
+     */
+    private static  class Component {
         final ByteBuf buf;
         int adjustment;
         int offset;
@@ -2229,6 +2244,9 @@ public class CompositeByteBuf extends AbstractReferenceCountedByteBuf implements
         return null;
     }
 
+    /**
+     * 对Iterator的实现
+     */
     private final class CompositeByteBufIterator implements Iterator<ByteBuf> {
         private final int size = numComponents();
         private int index;
