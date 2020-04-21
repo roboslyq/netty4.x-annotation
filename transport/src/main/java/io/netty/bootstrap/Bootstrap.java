@@ -128,10 +128,19 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     }
 
     /**
+     *
      * Connect a {@link Channel} to the remote peer.
+     * 通过一个Channel连接到指定的服务端
+     * @param inetHost 远程主机IP
+     * @param inetPort 远程主机端口
+     * @return
      */
     public ChannelFuture connect(String inetHost, int inetPort) {
-        return connect(InetSocketAddress.createUnresolved(inetHost, inetPort));
+        // 发起连接
+        return connect(
+                // 将字符串host和int类型的端口，包装成InetSocketAddress
+                InetSocketAddress.createUnresolved(inetHost, inetPort)
+        );
     }
 
     /**
@@ -297,14 +306,15 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     @Override
     @SuppressWarnings("unchecked")
     void init(Channel channel) throws Exception {
+        //设置pipeline
         ChannelPipeline p = channel.pipeline();
         p.addLast(config.handler());
-
+        //设置可选项
         final Map<ChannelOption<?>, Object> options = options0();
         synchronized (options) {
             setChannelOptions(channel, options, logger);
         }
-
+        //设置属性
         final Map<AttributeKey<?>, Object> attrs = attrs0();
         synchronized (attrs) {
             for (Entry<AttributeKey<?>, Object> e: attrs.entrySet()) {

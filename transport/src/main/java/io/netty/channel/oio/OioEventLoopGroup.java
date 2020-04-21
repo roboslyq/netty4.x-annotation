@@ -30,7 +30,7 @@ import java.util.concurrent.ThreadFactory;
 /**
  * {@link EventLoopGroup} which is used to handle OIO {@link Channel}'s. Each {@link Channel} will be handled by its
  * own {@link EventLoop} to not block others.
- *
+ * 阻塞式的传输，已经过时。应该使用NIO / EPOLL / KQUEUE transport.等
  * @deprecated use NIO / EPOLL / KQUEUE transport.
  */
 @Deprecated
