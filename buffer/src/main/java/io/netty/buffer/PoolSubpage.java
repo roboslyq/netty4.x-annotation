@@ -45,7 +45,10 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
      */
     private final int runOffset;
     /**
-     * 通过对每一个二进制位的标记来修改一段内存的占用状态:存储当前PoolSubpage中各个内存块的使用情况
+     * 通过对每一个二进制位的标记来修改一段内存的占用状态:存储当前PoolSubpage中各个内存块的使用情况。默认长度为8.
+     * 因为PoolSubPage能分配的最大内存是8k = 1024*8 = 8192B，并且最小单位是16B(Netty固定默认的最小分配单元是16B)。所以需要 8192/16 = 512 bit位来标识每一个
+     * 位的使用情况。而一个long = 8字节 = 64位。因此，只需要512 / 64 = 8 个long即可以表示所有bit位的使用情况。
+     * 所以bitmap的默认长度为8。
      */
     private final long[] bitmap;
     /**
@@ -66,7 +69,9 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
     // 记录下一个可用的节点，初始为0，只要在该PoolSubpage中申请过一次内存，就会更新为-1，
     // 然后一直不会发生变化
     private int nextAvail;
-    // 剩余可用的内存块的个数
+    // 剩余可用的内存块的个数,此个数不确定。因为需要根据当前PoolSubpage所属的类型来判断。
+    // 如果当前PoolSubpage属于16B类型(对应PoolArena中tinySubpagePool数组中的第0位Head元素所在的链)，那么，numAvail = 8k/16 = 512。
+    // 如果当前PoolSubpage属于256类型(对应PoolArena中tinySubpagePool数组中的第15位Head元素所在的链)，那么，numAvail = 8k/256 = 32。
     private int numAvail;
 
     // TODO: Test if adding padding helps under contention
@@ -114,9 +119,11 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         // elemSize记录了当前内存块的大小
         this.elemSize = elemSize;
         if (elemSize != 0) {
-            // 初始时，numAvail记录了可使用的内存块个数，其个数可以通过pageSize / elemSize计算，
-            // 我们这里就是8192 / 16 = 512。maxNumElems指的是最大可使用的内存块个数，
-            // 初始时其是与可用内存块个数一致的。
+            /*
+            * 初始时，numAvail记录了可使用的内存块个数，其个数可以通过pageSize / elemSize计算，
+            * 我们这里就是8192 / 16 = 512。maxNumElems指的是最大可使用的内存块个数，
+            * 初始时其是与可用内存块个数一致的。
+            */
             maxNumElems = numAvail = pageSize / elemSize;
             nextAvail = 0;
             // 这里bitmapLength记录了可以使用的bitmap的元素个数，这是因为，我们示例使用的内存块大小是16，
@@ -130,13 +137,13 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
             // 这是因为如果其小于64，前面一步的位移操作结果为0，但其还是需要一个long来记录
             if ((maxNumElems & 63) != 0) {
                 bitmapLength ++;
-            }
-            // 对bitmap数组的值进行初始化
-            for (int i = 0; i < bitmapLength; i ++) {
-                bitmap[i] = 0;
-            }
         }
-        // 将当前PoolSubpage添加到PoolSubpage的链表中，也就是最开始图中的链表
+    }
+    // 对bitmap数组的值进行初始化
+            for (int i = 0; i < bitmapLength; i ++) {
+        bitmap[i] = 0;
+    }
+        // 将当前PoolSubpage添加到PoolSubpage的链表中，也就是最开始PoolArena中的的tinySubpagePools或者smallSubpagePools链表
         addToPool(head);
     }
 
@@ -154,7 +161,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
      */
     long allocate() {
         // 如果elemSize为0，则直接返回0
-        if (elemSize == 0) {//默认为256B即
+        if (elemSize == 0) {
             return toHandle(0);
         }
         // 如果当前PoolSubpage没有可用的元素，或者已经被销毁了，则返回-1
@@ -164,14 +171,17 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         }
         // 计算下一个可用的内存块的位置：第1次为0，第2次申请返回1
         final int bitmapIdx = getNextAvail();
-        // 获取该内存块是bitmap数组中的第几号元素（除以32）
+        // 获取该内存块是bitmap数组中的第几号元素（除以64）
+        // 因为1个Long是64bit，所以通过右移 >>> 6,即除以64取整，即可得到在bitmap数组的元素位置。
+        // 例如 32 >>> 64 = 0。那么表示与bitmap[0]对应
+        // 例如 72 >>> 64 = 1,那么表示与bitmap[1]对应
         int q = bitmapIdx >>> 6;//第1次为0，
         // 获取该内存块是bitmap数组中q号位元素的第多少位
         int r = bitmapIdx & 63;//第1次为0，
         assert (bitmap[q] >>> r & 1) == 0;
         // 将bitmap数组中q号元素的目标内存块位置标记为1，表示已经使用
         bitmap[q] |= 1L << r;//第1次 bitmpa[1,0,0,0,0,0,0,0]，第2次，bitMap[3,0,0,0,0,0,0,0,0]
-        // 如果当前PoolSubpage中可用的内存块为0，则将其从链表中移除
+        // 如果当前PoolSubpage中可用的内存块为0，则将其从链表中移除。
         if (-- numAvail == 0) {//如果申请256B内存，numAvail = 32, --numAvail = 31
             removeFromPool();
         }
@@ -279,13 +289,23 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
      * @return
      */
     private int findNextAvail() {
-        final long[] bitmap = this.bitmap;//第1次{0,0,0,0,0,0,0,0},第2次{1,0,0,0,0,0,0,0},第3次{1,1,0,0,0,0,0,0}
+        /*
+         * bitmap 为long类型数组，数组长度为8。因此一共有8* 64 = 512 bit位。
+         *第1次进入时，还未被使用，所以 bitmap = {0,0,0,0,0,0,0,0} ->{00000000 00000000 00000000 00000000,00000000 00000000 00000000 00000000,00000000 00000000 00000000 00000000,00000000 00000000 00000000 00000000,... ...}
+         *第2次进入时，已经被使用1位，{1,0,0,0,0,0,0,0},->{0000000 00000000 00000000 00000001,00000000 00000000 00000000 00000000,00000000 00000000 00000000 00000000,00000000 00000000 00000000 00000000,... ...}
+         *第3次进入时，已经被使用2位，{3,0,0,0,0,0,0,0},->{0000000 00000000 00000000 00000011,00000000 00000000 00000000 00000000,00000000 00000000 00000000 00000000,00000000 00000000 00000000 00000000,... ...}
+         *第4次进入时，已经被使用3位，{7,0,0,0,0,0,0,0},->{0000000 00000000 00000000 00000111,00000000 00000000 00000000 00000000,00000000 00000000 00000000 00000000,00000000 00000000 00000000 00000000,... ...}
+         * ...
+         * 第512次进入时，所有位数都为1
+         */
+        final long[] bitmap = this.bitmap;
         final int bitmapLength = this.bitmapLength;
         // 这里的基本思路就是对bitmap数组进行遍历，首先判断其是否有未使用的内存是否全部被使用过
-        // 如果有未被使用的内存，那么就在该元素中找可用的内存块的位置
+        // 如果有未被使用的内存，那么就在该元素中找可用的内存块的位置。
         for (int i = 0; i < bitmapLength; i ++) {
             long bits = bitmap[i];
-            if (~bits != 0) {
+            // 与（&）、非（~）、或（|）、异或（^）
+            if (~bits != 0) {// 非（~）操作之后不为0，表示bits的64个bit位不全为1，即还有可用内存分配。
                 // 判断当前long型元素中是否有可用内存块
                 return findNextAvail0(i, bits);
             }
@@ -301,6 +321,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
      *      该算法的原理起始就是，如果一个long中所有的内存块都被申请了，那么这个long必然所有的位都为1，
      *      从整体上，这个long型数据的值就为-1，而将其取反~bits之后，值肯定就变为了0，
      *      因而这里只需要判断其取反之后是否等于0即可判断当前long型元素中是否有可用的内存块。
+     *
      * @param i 表示当前是bitmap数组中的第几个元素，bits表示该元素的值
      * @param bits
      * @return
@@ -308,11 +329,13 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
     private int findNextAvail0(int i, long bits) {
         final int maxNumElems = this.maxNumElems;
         // 这里baseVal就是将当前是第几号元素放到返回值的第7~9号位置上
+        // 例如：当前i=1,表示bitmap中的第1个元素，左移6次就变成了00000000 00000000 00000000 01000000
+        // 即落在了第7位上。在返回时进行拼接
         final int baseVal = i << 6;
         // 对bits的0~63号位置进行遍历，判断其是否为0，为0表示该位置是可用内存块，从而将位置数据
         // 和baseVal进行或操作，从而得到一个表征目标内存块位置的整型数据
         for (int j = 0; j < 64; j ++) {
-            // 判断当前位置是否为0，如果为0，则表示是目标内存块
+            // 判断当前位置是否为0，如果为0，则表示是目标内存块(空闲的可用的)
             if ((bits & 1) == 0) {
                 // 将内存快的位置数据和其位置j进行或操作，从而得到返回值
                 int val = baseVal | j;
@@ -328,7 +351,11 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         return -1;
     }
 
+    /**
+     *
+     */
     private long toHandle(int bitmapIdx) {
+
         return 0x4000000000000000L | (long) bitmapIdx << 32 | memoryMapIdx;
     }
 

@@ -96,7 +96,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
             // be handled by the PoolChunks that are contained in this PoolChunkList.
             return false;
         }
-
+        //第1次时，head == null,分配不会成功
         for (PoolChunk<T> cur = head; cur != null; cur = cur.next) {
             if (cur.allocate(buf, reqCapacity, normCapacity)) {
                 if (cur.usage() >= maxUsage) {
