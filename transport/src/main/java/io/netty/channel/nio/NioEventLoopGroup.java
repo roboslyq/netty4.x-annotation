@@ -86,7 +86,6 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
      *      if (executor == null) {
      *             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
      *         }
-     *
      *      protected ThreadFactory newDefaultThreadFactory() {
      *         return new DefaultThreadFactory(getClass());
      *     }

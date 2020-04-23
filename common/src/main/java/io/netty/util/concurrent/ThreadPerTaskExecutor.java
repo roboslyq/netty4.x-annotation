@@ -19,7 +19,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
 /**
- * 单个任务执行器
+ * 单个任务执行器：每一个任务一个新的线程
  */
 public final class ThreadPerTaskExecutor implements Executor {
     /**

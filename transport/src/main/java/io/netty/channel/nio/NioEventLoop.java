@@ -520,7 +520,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     /**
      * 核心方法：I/O数据的读取
-     * 1、首先看有没有未执行的任务，有的话直接执行，否则就去轮训看是否有就绪的Channel
+     *   1、轮询IO事件
+     *   2、处理IO事件
+     *   3、处理非IO任务
+     *
+     * =》首先看有没有未执行的任务，有的话直接执行，否则就去轮训看是否有就绪的Channel
      */
     @Override
     protected void run() {
@@ -530,7 +534,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     //-------------switch方法开始-------------------
                     switch (selectStrategy.calculateStrategy(
                                                             selectNowSupplier,  // selector.selectNow()
-                                                            hasTasks()          //判断任务队列是否有任务可以执行
+                                                            hasTasks()           //判断任务队列是否有任务可以执行
                     )) {
                         // 默认实现下，不存在这个情况。要么大于0，要么-1
                     case SelectStrategy.CONTINUE:
@@ -540,7 +544,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         // fall-through to SELECT since the busy-wait is not supported with NIO
 
                     case SelectStrategy.SELECT:
-                        // 核心方法：Selector进行I/O任务查询：(会阻塞)
+                        // 核心方法：Selector进行I/O任务查询：(会阻塞)：
                         select(
                                 //重置 wakenUp 标记为 false
                                 wakenUp.getAndSet(false)
@@ -596,8 +600,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 //NioEventLoop cancel 方法
                 cancelledKeys = 0;
                 needsToSelectAgain = false;
+                //默认为50,通常为false
                 final int ioRatio = this.ioRatio;
-                if (ioRatio == 100) {//默认为50,通常为false
+                if (ioRatio == 100) {
                     try {
                         //核心方法： 处理 Channel 感兴趣的就绪 IO 事件
                         processSelectedKeys();
@@ -613,8 +618,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         processSelectedKeys();
                     } finally {
                         // Ensure we always run tasks.
-                        // 处理 Channel 感兴趣的就绪 IO 事件
+                        // 处理 Channel 感兴趣的就绪 IO 事件，根据处理IO事件耗时 ,控制 下面的runAllTasks执行任务不能超过 ioTime 时间
                         final long ioTime = System.nanoTime() - ioStartTime;
+                        //聚合任务的逻辑
                         runAllTasks(ioTime * (100 - ioRatio) / ioRatio);
                     }
                 }
@@ -923,7 +929,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         // 通过 CAS 修改 false => true ，保证有且仅有进行一次唤醒。
         if (!inEventLoop && wakenUp.compareAndSet(false, true)) {
 //            因为 NioEventLoop 的线程阻塞，主要是调用 Selector#select(long timeout) 方法，阻塞等待有 Channel
-//            感兴趣的 IO 事件，或者超时。所以需要调用 Selector#wakeup() 方法，进行唤醒 Selector
+//            感兴趣的 IO 事件，或者超时。所以需要调用 Selector#wakeup() 方法，进行唤醒 Selector。
             selector.wakeup();
         }
     }

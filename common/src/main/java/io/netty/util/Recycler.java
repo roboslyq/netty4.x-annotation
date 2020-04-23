@@ -20,12 +20,10 @@ import io.netty.util.concurrent.FastThreadLocal;
 import io.netty.util.internal.SystemPropertyUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
-import jdk.internal.org.objectweb.asm.Handle;
 
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Stack;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 

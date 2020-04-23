@@ -315,7 +315,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * START-SERVER-STEP1：启动服务器绑定端口
+     * START-SERVER-STEP1：启动服务器绑定端口。
      * @param localAddress
      * @return
      */
@@ -333,6 +333,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
          * 异步注册完成之后进入端口绑定<异步注册不一定完成，此处不会阻塞>：
          * 所以状态可能有两种结果，一种是已经完成注册regFuture.isDone() = true,则直接进行bind相关操作
          * 如果regFuture.isDone() = false,那么添加任务队列进行相关Bind操作。
+         * ====>此处异步思想很重要，因为牵涉到后续相关线程的处理：
+         *      如果此时，regFuture.isDone() = true ,那么就直接在主线程main中进行下一步处理。
+         *      如果此时，regFuture.isDone() = false,那么任务就会被添加到任务池中，由EventLoop线程进行处理。
          */
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
@@ -431,10 +434,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * 服务端启动时绑定端口
-     * @param regFuture
-     * @param channel
+     * @param regFuture 服务端启动时为: DefaultChannelPromise
+     * @param channel 服务端启动时为:NioServerSOcketCHannel
      * @param localAddress
-     * @param promise
+     * @param promise 服务端启动时为:AbstractBootstrap$PendingRegistryPromise
      */
     private static void doBind0(
             final ChannelFuture regFuture, final Channel channel,
@@ -444,7 +447,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         // the pipeline in its channelRegistered() implementation.
         //调用 EventLoop 执行 Channel 的端口绑定逻辑。
         // 这个方法在channelRegistered()触发前被调用，以便用户可以在channelRegistered()去设置pipeline相关信息。
-        // channel.eventLoop().execute() = AstractEventExecutor.safeExecute()
+        // channel.eventLoop = NioEventLoop
+        // channel.eventLoop().execute() = SingleThreadEvent.execute(Runnable task)
+        // AstractEventExecutor.safeExecute()
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {

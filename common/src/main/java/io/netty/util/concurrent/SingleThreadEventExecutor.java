@@ -786,6 +786,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      *                             register0(promise);
      *                         }
      *                     });
+     * 3、AbstractBootstrap.doBind0()也会添加任务
+     *
      * @param task
      */
     @Override
@@ -794,12 +796,14 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         if (task == null) {
             throw new NullPointerException("task");
         }
-        //此处启动时，默认为false,因为启动时是在主线络 Main中。
+        //此条件可能为true也可能为false。因为Netty的异步特性设计。当调用execute()在main线程中，那么此处就为false.
+        //当调用用execute()在NioEventLoop线程中，那么此处就为true.
         boolean inEventLoop = inEventLoop();
-        //添加到任务队列
+        //添加到任务队列<不管是不是在EventLoop线程中，均需要将任务添加到队列中>
         addTask(task);
+        //如果不是EventLoop线程，那么就启动一个NioEventLoop线程来执行上面添加的任务。
         if (!inEventLoop) {
-            //启动任务
+            //开启激活当前NioEventLoop中的线程
             startThread();
             if (isShutdown()) {
                 boolean reject = false;
@@ -907,6 +911,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * 调用doStartThread，执行executor.execute接口
      */
     private void startThread() {
+        // NioEventLoop线程只会启动一次，第2次进入时此条件为false.
         if (state == ST_NOT_STARTED) {
             if (STATE_UPDATER.compareAndSet(this, ST_NOT_STARTED, ST_STARTED)) {
                 boolean success = false;
@@ -948,22 +953,22 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     /**
-     * 启动线程，执行完已经在任务队列中的任务
+     * 启动线程，执行完已经在任务队列中的任务：将NioEventLoop与Thread进行绑定
      */
     private void doStartThread() {
+        // 断言线程为空, 然后才创建新的线程:即此时NioEventLoop还未与线程绑定
         assert thread == null;
         /*
          * 当前还在实例NioEventLoop的父类SingleThreadEventExecutor中：
-         *
          *  executor = ThreadExecutorMap
          *      --> executor = ThreadPerTaskExecutor
          *      --> eventExecutor = NioEventLoop
-         *
          *  ThreadPerTaskExecutor#execute该方法会调用start方法，将线程激活
          */
         executor.execute(new Runnable() {
             @Override
             public void run() {
+                //获取刚才创建出来的线程,保存在NioEventLoop中的 thread 变量里面, 这里其实就是在进行那个唯一的绑定
                 thread = Thread.currentThread();
                 if (interrupted) {
                     thread.interrupt();
@@ -987,6 +992,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                         特别的，如果在上例的getFoo()方法中写Bar.this的话，作用就跟直接写this一样，指定的是当前的Foo.Bar类实例。
                      */
                     // 因为这是一个新的线程，所以想要调用NioEventLoop引用，只能通过SingleThreadEventExecutor.this
+                    // 实际启动线程,NioEventLoop 启动完成了。
                     SingleThreadEventExecutor.this.run();
                     success = true;
                 } catch (Throwable t) {

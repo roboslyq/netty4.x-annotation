@@ -44,7 +44,9 @@ SwappedByteBuf和CompositedByteBuf我觉得也算某种程度的衍生类吧，S
 
 # 3、Netty是如何实现线程和Channel唯一绑定的?
 
->  netty的线程模型对一个channel来说是单线程的,也就是说这个channel的所有读写事件都是同一个线程执行的,避免了多线程产生的并发问题.而一个eventloop是可以被多个channel绑定的,那么每次服务器连接一个channel之时,netty时如何知道使用哪个线程的呢? 
+>  netty的线程模型对一个channel来说是单线程的,也就是说这个channel的所有读写事件都是同一个线程执行的,避免了多线程产生的并发问题。
+>
+>  而一个eventloop是可以被多个channel绑定的,那么每次服务器连接一个channel之时,netty时如何知道使用哪个线程的呢? 
 
 
 
