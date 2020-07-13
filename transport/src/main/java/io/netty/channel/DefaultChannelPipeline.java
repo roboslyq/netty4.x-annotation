@@ -261,9 +261,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
             checkMultiplicity(handler);
-            //构建上下文环境
+            //构建ChannelHandler的上下文环境
             newCtx = newContext(group, filterName(name, handler), handler);
-            //添加ChannelHandler
+            //添加ChannelHandlerContext到ChannelHandlerContex链中
             addLast0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
@@ -711,6 +711,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         oldCtx.next = newCtx;
     }
 
+    /**
+     * 检查是否重复添加，如果没有标注@Sharable并且重复添加，则报错。
+     * @param handler
+     */
     private static void checkMultiplicity(ChannelHandler handler) {
         if (handler instanceof ChannelHandlerAdapter) {
             ChannelHandlerAdapter h = (ChannelHandlerAdapter) handler;
