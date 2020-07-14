@@ -374,7 +374,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * START-SERVER-STEP1：
+     * START-SERVER-STEP2：
      *      (server-start-2):初始经并且注册channel到Selector中
      *      <这个方法服务端与客户端完全共享(NioServerSocketChannel与NioSocketChannel完全共享这一段代码)>
      * @return

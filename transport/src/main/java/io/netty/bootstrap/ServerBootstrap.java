@@ -39,7 +39,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * {@link Bootstrap} sub-class which allows easy bootstrap of {@link ServerChannel}
- * 1、服务端服务启动引导类 ，Bootstrap子类，方便引导启动 ServerChannel类。此类是服务端的。具体客户端见Bootstrap。
+ * 1、服务端服务启动引导类 ，Bootstrap子类，方便引导启动 ServerChannel类。
+ *    此类是服务端的,具体客户端见Bootstrap。
  * 2、服务端有两种线程池，用于Acceptor的React主线程(一般命名为bossGroup)和用于I/O操作的React从线程池（一般命名为workGroup）；
  *    客户端只有用于连接及IO操作的React的主线程池；
  * 3、ServerBootstrap中定义了服务端React的"从线程池"对应的相关配置，都是以child开头的属性。
@@ -161,7 +162,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
     void init(Channel channel) throws Exception {
         /* 即获取如下代码中的option()方法设置的对应参数：
          * ServerBootstrap b = new ServerBootstrap();
-         *             b.group(bossGroup, workerGroup)
+         *              b.group(bossGroup, workerGroup)
          *              .channel(NioServerSocketChannel.class)
          *              .option(ChannelOption.SO_BACKLOG, 100)
          */
@@ -201,7 +202,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         synchronized (childAttrs) {
             currentChildAttrs = childAttrs.entrySet().toArray(newAttrArray(0));
         }
-        //构造channelPipeline链最后一个channelHandler，此链固定为：ServerBootstrapAcceptor。用户不用进行相关设置
+        // 构造channelPipeline链最后一个channelHandler，此链固定为：ServerBootstrapAcceptor。用户不用进行相关设置
         /* 假设用户使用方式如下：
          ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -348,6 +349,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             // 将NioSocketChannel注册到childGroup，也就是Netty的WorkerGroup当中去
             // 也就是完成Selector注册。childGroup = NioEventLoopGroup
             try {
+                // childGroup = MultithreadEventLoopGroup
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
