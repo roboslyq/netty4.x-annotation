@@ -445,13 +445,18 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     protected void afterRunningAllTasks() { }
     /**
      * Returns the amount of time left until the scheduled task with the closest dead line is executed.
+     * 判断Seletor需要延迟的时间：因为scheduleTask与selector是用同一个循环，所以selector的延时时间由两个因素决定：
+     * 1、指定Selector超时时间
+     * 2、下一次有schedule任务需要调用的时间
+     *
+     * 本方法就是获取下一次需要调用的任务的时间。
      */
     protected long delayNanos(long currentTimeNanos) {
         ScheduledFutureTask<?> scheduledTask = peekScheduledTask();
-        if (scheduledTask == null) {
+        if (scheduledTask == null) {//队列中没有任务，使用默认的值
             return SCHEDULE_PURGE_INTERVAL;
         }
-
+        // 有任务，返回下一次任务(dead line)将要执行的时间
         return scheduledTask.delayNanos(currentTimeNanos);
     }
 
@@ -904,7 +909,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     // ScheduledExecutorService implementation
-
+    // schedule的触发时间间隔
     private static final long SCHEDULE_PURGE_INTERVAL = TimeUnit.SECONDS.toNanos(1);
 
     /**

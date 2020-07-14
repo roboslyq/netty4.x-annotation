@@ -338,7 +338,6 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             // ServerBootstrap在启动时配置的代码：
             // ServerBootstrap.childHandler(new ChannelInitializer<SocketChannel>() {...} ）
             // 最终的结果就是向NioSocketChannel的Pipeline添加用户自定义的ChannelHandler 用于处理客户端的channel连接
-            // <在这个方法里面，会触发ChannelInitializer#initChannel()方法>
             child.pipeline().addLast(childHandler);
             // 配置 NioSocketChannel的TCP属性
             setChannelOptions(child, childOptions, logger);
@@ -350,6 +349,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             // 也就是完成Selector注册。childGroup = NioEventLoopGroup
             try {
                 // childGroup = MultithreadEventLoopGroup
+                // <在childGroup.register(child)这个方法里面，会触发ChannelInitializer#initChannel()方法>
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {

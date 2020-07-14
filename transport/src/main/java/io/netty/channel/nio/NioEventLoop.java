@@ -591,7 +591,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 } catch (IOException e) {
                     // If we receive an IOException here its because the Selector is messed up. Let's rebuild
                     // the selector and retry. https://github.com/netty/netty/issues/8566
-                    // 重建selector。
+                    // 重建selector
                     rebuildSelector0();
                     handleLoopException(e);
                     continue;
