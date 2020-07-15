@@ -350,6 +350,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             try {
                 // childGroup = MultithreadEventLoopGroup
                 // <在childGroup.register(child)这个方法里面，会触发ChannelInitializer#initChannel()方法>
+                // NioSocketChannel注册到work的eventLoop中，这个过程和NioServerSocketChannel注册到boss的eventLoop的过程一样
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {

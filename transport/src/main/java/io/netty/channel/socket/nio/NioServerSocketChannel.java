@@ -163,7 +163,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     }
 
     /**
-     * 读取消息
+     * 读取消息:通过 ServerSocketChannel 的 accept 方法获取到 Tcp 连接，然后封装成 Netty 的 NioSocketChannel
      * @param buf
      * @return
      * @throws Exception
@@ -174,6 +174,8 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         SocketChannel ch = SocketUtils.accept(javaChannel());
 
         try {
+            // 阻塞模式：ServerSocketChannel.accept() 方法监听新进来的连接，当 accept()方法返回的时候,它返回一个包含新进来的连接的 SocketChannel。阻塞模式下, accept()方法会一直阻塞到有新连接到达。
+            //非阻塞模式：accept() 方法会立刻返回，如果还没有新进来的连接,返回的将是null。 因此，需要检查返回的SocketChannel是否是null。
             if (ch != null) {
                 // 1、使用Netty的NioSocketChannel包装 JDK 原生的SocketChannel。从而实现Netty与JDK 对接。
                 // 2、在父类的构造函数中，完成当前Channel的pipeline 创建

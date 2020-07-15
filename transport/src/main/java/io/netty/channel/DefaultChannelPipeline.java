@@ -1090,7 +1090,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     /**
-     * 开始读
+     * 注册和启动:
      * 入站步骤：OP_ACCEPT_3
      * @param msg NioSocketChannel
      * @return

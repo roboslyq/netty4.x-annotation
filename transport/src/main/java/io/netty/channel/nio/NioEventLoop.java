@@ -523,7 +523,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      *   1、轮询IO事件
      *   2、处理IO事件
      *   3、处理非IO任务
-     *
+     * 注意  服务端此监听线程数量通常只有一个，因为正常情况只需要一个线程执行NIO 的Selector监听操作即可。
+     *       所以即使有多个线程也是浪费的了。此时，对应一个具体的NioEventLoop线程，在run()方法中实现循环监听。
      * =》首先看有没有未执行的任务，有的话直接执行，否则就去轮训看是否有就绪的Channel
      */
     @Override
@@ -664,7 +665,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     /**
-     * 核心方法：JDK 的selector与 netty的ChannelPipeline连接处理
+     * 核心方法: 实现了 netty的ChannelPipeline与JDK的selector关联
      *   selectedKeys 非空，意味着使用优化的 SelectedSelectionKeySetSelector ，
      *   所以调用 #processSelectedKeysOptimized() 方法,否则，调用 #processSelectedKeysPlain() 方法
      */
@@ -803,6 +804,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         if (!k.isValid()) {//当前Channel不可用时
             final EventLoop eventLoop;
             try {
+                // 获取当前channel绑定的线程eventLoop
                 eventLoop = ch.eventLoop();
             } catch (Throwable ignored) {
                 // If the channel implementation throws an exception because there is no event loop, we ignore this
@@ -868,6 +870,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 处理
+     * @param k
+     * @param task
+     */
     private static void processSelectedKey(SelectionKey k, NioTask<SelectableChannel> task) {
         int state = 0;
         try {

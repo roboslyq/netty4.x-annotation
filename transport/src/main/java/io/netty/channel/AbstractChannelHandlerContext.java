@@ -375,7 +375,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     }
 
     /**
-     * 读消息:
+     * 读消息(注意是静态方法,所以第一次触发这个调用链是 AbstractChannelHandlerContext.invokeChannelRead(head, msg)这种形式
+     * 其中,head是指headContext(如果从头开始链),或者tailContext,如果是出站,从尾开始触发链。此处是channel read,所以 第一次调用时，next是head):
      * 入站步骤：OP_ACCEPT_4
      * @param next 第一次进入：HeadContext，最终会到TailContext
      *             然后每次都是当前的next节点，直到最终的尾部节点TailContext。
@@ -416,16 +417,17 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
      * @param msg
      */
     private void invokeChannelRead(Object msg) {
-        if (invokeHandler()) {
+        if (invokeHandler()) {// 保证{@link ChannelHandler#handlerAdded(ChannelHandlerContext)}已经被调用(完成初始化)
             try {
                 // 第一次进入是：handler() = HeadContext，经过层层pipeline调用，最终进入TailContext。
                 // 如果是NioSocketChannel，即读事件，具体解码器实现
-                // 如果是NioServerSocketChannel,即ACCEPT事件，由ServerBootstrapAcceptor处理。
+                // ====>核心关键：如果是NioServerSocketChannel,即ACCEPT事件，由ServerBootstrapAcceptor处理。
                 ((ChannelInboundHandler) handler()).channelRead(this, msg);
             } catch (Throwable t) {
                 notifyHandlerException(t);
             }
         } else {
+            //如果 ChannelHandler没完成初始化，再调用一次fireChannelRead()
             fireChannelRead(msg);
         }
     }
@@ -1087,6 +1089,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
      * If this method returns {@code false} we will not invoke the {@link ChannelHandler} but just forward the event.
      * This is needed as {@link DefaultChannelPipeline} may already put the {@link ChannelHandler} in the linked-list
      * but not called {@link ChannelHandler#handlerAdded(ChannelHandlerContext)}.
+     * 保证ChannelHandler已经完成初始化，即调用了{@link ChannelHandler#handlerAdded(ChannelHandlerContext)}方法。
      */
     private boolean invokeHandler() {
         // Store in local variable to reduce volatile reads.

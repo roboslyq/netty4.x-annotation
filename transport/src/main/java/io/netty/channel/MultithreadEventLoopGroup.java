@@ -89,7 +89,7 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
 
     /**
      * START-SERVER-STEP4.1：
-     * 1、注册Channel到具体的NioEventLoop上
+     * 1、注册Channel(NioSocketChannel)到具体的NioEventLoop上
      * 2、Reactor模型中，NioEventloopGroup相当于线程组，NioEventLoop就是具体干活的线程。
      *      所以绑定，即将Channel与具体的NioEventLoop进行绑定。
      * 3、进行绑定的时候，也会将Channel注册到JDK中的Selector中

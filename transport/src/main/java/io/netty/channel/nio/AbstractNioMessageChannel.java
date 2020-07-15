@@ -108,6 +108,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 int size = readBuf.size();
                 for (int i = 0; i < size; i ++) {
                     readPending = false;
+                    // 注册和启动
                     // ==========> 调用pipeline传播ChannelRead事件,完成NioSocketChannel注册.
                     // 当前的pipeline链为：HeadContext ---> ServerBootstrap#ServerBootstrapAcceptor--->TailContext
                     // 其中 ServerBootstrapAccptor是在ServerBootStrap#init(Channel channel)方法中最后添加的

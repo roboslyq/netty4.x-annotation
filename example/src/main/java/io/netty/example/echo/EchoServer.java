@@ -67,6 +67,8 @@ public final class EchoServer {
          *   1、boss线程池的线程负责处理请求的accept事件，当接收到accept事件的请求时，把对应的socket封装到一个NioSocketChannel中，
          *       并交给work线程池。
          *   2、work线程池负责请求的read和write事件，由对应的Handler处理
+         *   3、bossGroup的线程数量通常为1，因为正常情况只需要一个线程执行NIO 的Selector监听操作即可。
+         *      所以即使有多个线程也是浪费的了。此时，对应一个具体的NioEventLoop线程，在run()方法中实现循环监听。
          */
         //创建boss主线程池，用于服务端接受(Acceptor)客户端的连接
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
