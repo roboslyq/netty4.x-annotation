@@ -417,8 +417,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (;;) {
             try {
-                //此处selectionKey为Channel的实例实例变量
-                selectionKey = javaChannel() // 获取JDK中的SelectableChannel
+                // 此处selectionKey为Channel的实例实例变量,并且注意：注册的附加对象是this,即NioServerSocketChannel（服务端时）
+                // 因此，当ACCEPTER事件到来时，可以通过SelectionKey.attachment()方法取出NioServerSocketChannel
+                                selectionKey = javaChannel() // 获取JDK中的SelectableChannel
                         .register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {

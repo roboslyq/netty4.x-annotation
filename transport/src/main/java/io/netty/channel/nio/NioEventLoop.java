@@ -724,6 +724,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         Iterator<SelectionKey> i = selectedKeys.iterator();
         for (;;) {
             final SelectionKey k = i.next();
+            // a类型是在AbstractNioChannel.doRegister()时，进行绑定的。正常情况，服务端启动绑定的最常用的类型是NioServerSocketChannel
+            // 也就是 AbstractNioChannel 的子类
             final Object a = k.attachment();
             i.remove();
 

@@ -523,7 +523,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     }
 
     /**
-     * 绑定监听端口
+     * 绑定监听端口：拦截器链，会不断的调用此方法，直到链的末尾。
+     * bind链是从TailContext开始，结束于HeadContext
      * @param localAddress
      * @param promise
      * @return
@@ -539,12 +540,14 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
         /*
          * ChannelPipeline相关实现,调用流程如下：
-         *      DefaultChannelPipeline#TailConext<TailContext>
-         *          --> AbstractChannelHandlerContext<LoggingHandler>
-         *              -->DefaultChannelPipeline#HeadContext<HeadContext>
+         *      DefaultChannelPipeline#TailConext<TailContext>（当前）
+         *          --> AbstractChannelHandlerContext<LoggingHandler>(下面的next)
+         *              -->DefaultChannelPipeline#HeadContext<HeadContext>（next->next）
          *                  -->Unsafe.bind(localAddress, promise)
          *                      -->NioServerSocketChannel.doBind()
          */
+        // 如果有中间有配置handler的话，就是从TailContext往前找的Handler，比如LoggingHandler,
+        // 直到DefaultChannelPipeline#HeadContext
         final AbstractChannelHandlerContext next = findContextOutbound(MASK_BIND);
         EventExecutor executor = next.executor();
         //如果是EventLoop(默认是NioEventLoop，所以此处为true)
