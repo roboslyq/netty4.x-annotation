@@ -67,6 +67,10 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         /**
          * 消息类型为Message时使用此read()
          * 入站步骤：OP_ACCEPT_2
+         *
+         * 1.从内存池中分配内存获取ByteBuf对象
+         * 2.从socket数据流中读取数据到ByteBuf中
+         * 3.调用fireChannelRead()方法在pipeline管道中传递数据；
          */
         @Override
         public void read() {
@@ -78,7 +82,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             final ChannelPipeline pipeline = pipeline();
             // 获取RecvByteBuf 分配器 Handle
             // allocHandle = AdaptiveRecvByteBufAllocator,里面
-            // 当channel在接收数据时，allocHandle 会用于分配ByteBuf来保存数据。默认为：DefaultMaxMessagesRecvByteBufAllocator
+            /** 当channel在接收数据时，allocHandle 会用于分配ByteBuf来保存数据。默认为：DefaultMaxMessagesRecvByteBufAllocator*/
             final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
             // 重置已累积的所有计数器，并为下一个读取循环读取多少消息/字节数据提供建议
             allocHandle.reset(config);
@@ -112,7 +116,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                     // ==========> 调用pipeline传播ChannelRead事件,完成NioSocketChannel注册.
                     // 当前的pipeline链为：HeadContext ---> ServerBootstrap#ServerBootstrapAcceptor--->TailContext
                     // 其中 ServerBootstrapAccptor是在ServerBootStrap#init(Channel channel)方法中最后添加的
-                    // 客户端连接事件(ACCEPT)1: =======>注册是在ServerBootstrapAcceptor中完成的
+                    // 客户端连接事件(ACCEPT)1: =======>注册是在ServerBootStrap#ServerBootstrapAcceptor中完成的
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
                 // 清空readBuf

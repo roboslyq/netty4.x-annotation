@@ -86,6 +86,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     /**
      * Specify the {@link EventLoopGroup} which is used for the parent (acceptor) and the child (client).
+     * 单线程模型使用：即所有的操作都由一个线程完成。按收客户端连接，IO读写，业务处理等均在一个线程内完成。
+     * 问题：一个NIO线程同时处理成百上千的链路，性能上无法支撑，速度慢，若线程进入死循环，
+     *      整个程序不可用，对于高负载、大并发的应用场景不合适。
      */
     @Override
     public ServerBootstrap group(EventLoopGroup group) {
@@ -351,6 +354,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 // childGroup = MultithreadEventLoopGroup
                 // <在childGroup.register(child)这个方法里面，会触发ChannelInitializer#initChannel()方法>
                 // NioSocketChannel注册到work的eventLoop中，这个过程和NioServerSocketChannel注册到boss的eventLoop的过程一样
+                // Netty的线程模型，在workGroup中，完成IO的读写操作。
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {

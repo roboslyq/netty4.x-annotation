@@ -79,7 +79,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private static final AtomicReferenceFieldUpdater<SingleThreadEventExecutor, ThreadProperties> PROPERTIES_UPDATER =
             AtomicReferenceFieldUpdater.newUpdater(
                     SingleThreadEventExecutor.class, ThreadProperties.class, "threadProperties");
-
+    /**
+     * 任务队列，每个NioEventLoop都有自己的任务队列，互不干扰
+     */
     private final Queue<Runnable> taskQueue;
     /**
      * 每个SingleThreadEventExecutor（例如EventLoop）都对应一个具体的线程。一旦绑定，不可以改变

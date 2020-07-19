@@ -100,7 +100,9 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
     public ChannelFuture register(Channel channel) {
         // group.next() = NioEventLoop
         // NioEvnetLoop.register()= SingleThreadEventLoop.register()
-        // 将Channel注册到Reactor主线程组中具体的EventLoop线程中去，此时已经建议Channel与EventLoop对应关系。
+        // 将Channel注册到Reactor主线程组中具体的EventLoop线程中去，此时已经建议Channel与EventLoop对应关系
+        // 通过NioEventLooGroup实现NioEventLoop调度。通过next()方法，选择一个具体的NioEventLoop，将channel注册进去。
+        // next采用了取余算法，决定具体的NioEventLoop线程
         return next().register(channel);
     }
 

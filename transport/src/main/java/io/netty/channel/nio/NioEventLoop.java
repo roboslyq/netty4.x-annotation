@@ -149,10 +149,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * NioEventLoop需要处理网络I/O读写事件，因此它必须聚合一个多路复用器对象(Selector)
      */
     private Selector selector;
+
     // 未包装的 Selector 对象
     private Selector unwrappedSelector;
-    //注册的 SelectionKey 集合。Netty 自己实现，经过优化。
+
+    // 注册的 SelectionKey 集合。Netty 自己实现，经过优化。
     private SelectedSelectionKeySet selectedKeys;
+
     // SelectorProvider 对象，用于创建 Selector 对象
     private final SelectorProvider provider;
 
@@ -599,6 +602,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 }
                 //-------------switch方法结束-----------------------------
                 //NioEventLoop cancel 方法
+                System.out.println("当前线程：" +Thread.currentThread());
                 cancelledKeys = 0;
                 needsToSelectAgain = false;
                 //默认为50,通常为false

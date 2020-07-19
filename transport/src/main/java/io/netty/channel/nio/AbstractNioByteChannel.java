@@ -152,10 +152,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             boolean close = false;
             try {
                 do {
+                    // 从内存池中分配内存获取ByteBuf对象
                     byteBuf = allocHandle.allocate(allocator);
                     // ==>核心读方法：将NioSocketChannel中的数据读入到ByteBuf中
                     allocHandle.lastBytesRead(
-                            doReadBytes(byteBuf)//核心读方法，将数据读入到byteBuf中
+                            doReadBytes(byteBuf)//======>核心读方法，将数据读入到byteBuf中
                     );
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.

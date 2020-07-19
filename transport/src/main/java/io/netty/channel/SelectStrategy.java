@@ -27,13 +27,16 @@ public interface SelectStrategy {
 
     /**
      * Indicates a blocking select should follow.
+     * 需要select阻塞
      */
     int SELECT = -1;
     /**
+     * 不阻塞select
      * Indicates the IO loop should be retried, no blocking select to follow directly.
      */
     int CONTINUE = -2;
     /**
+     * 不阻塞
      * Indicates the IO loop to poll for new events without blocking.
      */
     int BUSY_WAIT = -3;

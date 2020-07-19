@@ -76,27 +76,30 @@
 
 ![a](./images/o_01/2.png)
 
-> 注意一个关键点：此EventLoop中没有包含具体的Channel信息，而是Channel中包含具体的EventLoop。因此 ，一个EventLoop可以为多个Channel执行相关的任务。即EventLoop:Channel = N : 1的关系。
+> 注意一个关键点：此`EventLoop`中没有包含具体的`Channel`信息，而是`Channel`中包含具体的`EventLoop`。因此 ，一个EventLoop可以为多个Channel执行相关的任务。即`EventLoop`:`Channel` = N : 1的关系。
 
 - **Selector selector**
 
   - 当前`EventLoop`对应监听的具体Selector
-
 - **SelectedSelectionKeySet selectedKeys**
-
 - **Thread thread**
-
-  - 当前`NioEventLoop`对应的执行线程
-
+- 当前`NioEventLoop`对应的执行线程。一个EventLoop与一个Thread绑定，因此，可以认为，EventLoop就是一个线程。
 - **EventExecutorGroup parent**
 
   - 真实类型是`NioEventLoopGroup`
-
 - **Queue<Runnable>  taskQueue**
-
+- 任务队列
 - **Executor executor**
+- 任务执行器
 
-  
+> NioEventLoop 是 Netty 的 Reactor 线程，它的职责如下：
+>
+> 1. 作为服务端 Acceptor 线程，负责处理客户端的请求接入(Acceptor)；
+> 2. 作为客户端 Connecor 线程，负责注册 监听连接操作位，用于判断异步连接结果；
+> 3. 作为 IO 线程，监听网络读操作位，负责从 SocketChannel 中读取报文；
+> 4. 作为 IO 线程，负责向 SocketChannel 写入报文发送给对方，如果发生写半包，会自动注册监听写事件，用于后续继续发送半包数据，直到数据全部发送完成；
+> 5. 作为定时任务线程，可以执行定时任务，例如链路空闲检测和发送心跳消息等；
+> 6. 作为线程执行器可以执行普通的任务线程（Runnable）。
 
 # 3. Channel
 
@@ -222,11 +225,11 @@ final ChannelFuture initAndRegister() {
 
 
 
-# 问题
+# 9、问题
 
-## 1、BossGroup是否有必要多线程？
+## 9.1 BossGroup是否有必要多线程？
 
-正常情况，没有必要，设置为1即可。但是存在一种共享ServerBootstrap情况，示例代码如下:
+正常情况，没有必要，设置为1即可。但是存在一种共享`ServerBootstrap`情况，示例代码如下:
 
 ```java
 public class EchoServer {
@@ -239,10 +242,10 @@ public EchoServer(int port) {
 }
 
 public void start() throws Exception {
-
+	// 定义好线程组
     EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     EventLoopGroup workerGroup = new NioEventLoopGroup(4);
-
+	// 循环两次，创建两个不同的ServerBootStrap,监听不同的端口
     for (int i = 0; i != 2; ++i) {
         ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
@@ -299,6 +302,33 @@ public static void main(String[] args) throws Exception {
 
 参考资料:  http://ddrv.cn/a/302336 
 
-## 2. Java NIO 经典BUG是什么原因导致的？怎么解决？
+## 9.2  Java NIO 经典BUG是什么原因导致的？怎么解决？
 
 边缘触发，CPU空转，使用率100%。
+
+## 9.3 netty中eventloop线程和客户端管道的绑定是怎么实现的?
+netty通过java.nio.channels.SelectableChannel#register(java.nio.channels.Selector, int, java.lang.Object)方法将自身实现的NioSocketChannel和SelectionKey,原生的socket channel绑定在了一起.
+NioSocketChannel(AbstractNioChannel.NioUnsafe负责创建)在初始化过程中(由ServerBootstrapAcceptor负责添加pipeline等)时会设置eventloop变量的,
+这样每次selectionkey事件触发就知道是哪个niosocketchannel,然后就知道了eventloop(执行线程).
+
+参考资料：http://xueliang.org/article/detail/20200712234015993
+
+https://blog.csdn.net/mydream20130314/article/details/84501060
+
+## 9.4 netty为什么将ACCEPT事件和普通READ事件放一起处理？
+
+```java
+if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
+    // 核心的常用方法===> 读事件处理
+    // 当事件为OP_ACCEPT时(即ch为Server端:NioServerSocketChannel)，unsafe = AbstractNioMessageChannel#NioMessageUnsafe
+    // 当事件为OP_READ时(即ch为Client端:NioSocketChannel)，unsafe = AbstractNioByteChannel#NioByteUnsafe
+    // 入站步骤：OP_ACCEPT_1
+    unsafe.read();
+}
+```
+
+即不同的Channel（NioServerSocketChannel和NioSockerChannel）对应不同的Unsafe。
+
+如果是服务端监听NioServerSocketChannel，则unsafe = AbstractNioMessageChannel#NioMessageUnsafe,此时对应ACCEPT处理。
+
+如果是客户端发送消息的端监听NioSocketChannel，则unsafe = AbstractNioMessageChannel#NioByteUnsafe,此时对应READ事件处理。
