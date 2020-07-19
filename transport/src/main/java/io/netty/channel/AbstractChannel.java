@@ -582,7 +582,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 try {
                     /*
                      * START-SERVER-STEP4.3：
-                     * 注册核心方法
+                     * 注册核心方法,此时会启动EventLoop中对应的Thread线程
                      *  eventLoop = NioEventLoop ,所以最终eventLoop.execute()调用栈如下：
                      *      SingleThreadEventExecutor#execute()
                      *      --> SingleThreadEventExecutor#startThread()

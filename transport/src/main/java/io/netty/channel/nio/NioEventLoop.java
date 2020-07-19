@@ -602,7 +602,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 }
                 //-------------switch方法结束-----------------------------
                 //NioEventLoop cancel 方法
-                System.out.println("当前线程：" +Thread.currentThread());
+                System.out.println("当前线程：" +Thread.currentThread()+"; 当前线程对应的selector：" +this.selector + "; 当前线程对应的channel：" +this.registeredChannels());
                 cancelledKeys = 0;
                 needsToSelectAgain = false;
                 //默认为50,通常为false
