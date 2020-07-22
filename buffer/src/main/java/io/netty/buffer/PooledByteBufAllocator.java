@@ -396,7 +396,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
      */
     @Override
     protected ByteBuf newDirectBuffer(int initialCapacity, int maxCapacity) {
-        // 先从缓存中获取: TODO 具体细节
+        // 先从缓存中获取(PoolThreadLocalCache): TODO 具体细节
         PoolThreadCache cache = threadCache.get();
         PoolArena<ByteBuffer> directArena = cache.directArena;
 

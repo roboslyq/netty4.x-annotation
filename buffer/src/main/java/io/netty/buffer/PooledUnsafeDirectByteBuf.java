@@ -29,6 +29,9 @@ import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
 final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
+    /**
+     * 类属性:RECYCLER,全类共享
+     */
     private static final Recycler<PooledUnsafeDirectByteBuf> RECYCLER = new Recycler<PooledUnsafeDirectByteBuf>() {
         @Override
         protected PooledUnsafeDirectByteBuf newObject(Handle<PooledUnsafeDirectByteBuf> handle) {
@@ -46,7 +49,7 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
          * RECYCLER: 对象池技术，是另一个体系。此处不具体扩展分析。
          */
         PooledUnsafeDirectByteBuf buf = RECYCLER.get();
-        //从 对象池中获取对象，需要reuse后才能使用，否则可能有之前操作保存的相关数据。
+        //从对象池中获取对象，需要reuse后才能使用，否则可能有之前操作保存的相关数据。
         buf.reuse(maxCapacity);
         return buf;
     }

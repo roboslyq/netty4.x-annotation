@@ -254,8 +254,9 @@ public abstract class Recycler<T> {
         }
         //1、获取当前线程的Stack<T>对象
         Stack<T> stack = threadLocal.get();
-        //2、从Stack<T>对象中获取DefaultHandle<T>：核心方法Stack#pop()
+        //2、=====> 从Stack<T>对象中获取DefaultHandle<T>：核心方法Stack#pop()
         DefaultHandle<T> handle = stack.pop();
+
         if (handle == null) {//首次进入为true,需要创建对象
             //3、 新建一个DefaultHandle对象 -> 然后新建T对象 -> 存储到DefaultHandle对象
             //   此处会发现一个DefaultHandle对象对应一个Object对象，二者相互包含。
@@ -363,7 +364,7 @@ public abstract class Recycler<T> {
     }
 
     /**
-     * 类属性，所有实例共享
+     * 类属性，所有实例共享，从而实现不同线程间的对象回收。比如，A线程创建对象 POJO1,传递给B线程使用，B线程也可以对对象POJO1进行回收。
      * Recycler <--1:1-->Thread
      * Recycler <--1:1-->Stack
      * Recycler <--1:N-->WeakOrderQueue (通过Map<Stack<?>, WeakOrderQueue>)实现。即一个JVM，Recycler对应N个WeakOrderQueue，并且这个WeakOrderQueue是共享的区域。
@@ -739,7 +740,9 @@ public abstract class Recycler<T> {
          */
         @SuppressWarnings({ "unchecked", "rawtypes" })
         DefaultHandle<T> pop() {
+            // 当前栈元素保存的数量
             int size = this.size;
+            // 如果当前栈元素数据为0，则尝试从WeakOrderQueue获取(即其它线程归还的对象)
             if (size == 0) {
                 // 如果当前Stack没有多余的元素，则从WeakOrderQueue中获取
                 if (!scavenge()) {
@@ -765,6 +768,10 @@ public abstract class Recycler<T> {
             return ret;
         }
 
+        /**
+         * 遍列WeakOrderQueue(异线程归还的对象)
+         * @return
+         */
         boolean scavenge() {
             // continue an existing scavenge, if any
             if (scavengeSome()) {
