@@ -56,7 +56,9 @@ public class RecyclerTest {
                 // Store a reference to the HandledObject to ensure it is not collected when the run method finish.
                 reference.set(object);
             }
-        }) {
+        })
+
+        {
             @Override
             protected void finalize() throws Throwable {
                 super.finalize();
@@ -95,8 +97,26 @@ public class RecyclerTest {
         object.recycle();
         object.recycle();
     }
-
-    @Test(expected = IllegalStateException.class)
+    /**
+     * 测试同一线程多个对象，多次回收
+     */
+    @Test()
+    public void testMultipleRecycle2() {
+        Recycler<HandledObject> recycler = newRecycler(0);
+        HandledObject object = recycler.get();
+        HandledObject object1 = recycler.get();
+        object.doService();
+        System.out.println(object);
+        System.out.println(object1);
+        object.recycle();
+        object1.recycle();
+        System.out.println(object);
+        System.out.println(object1);
+        HandledObject object2 = recycler.get();
+        System.out.println(object2);
+    }
+    @Test
+//    @Test(expected = IllegalStateException.class)
     public void testMultipleRecycleAtDifferentThread() throws InterruptedException {
         Recycler<HandledObject> recycler = newRecycler(1024);
         final HandledObject object = recycler.get();
@@ -296,9 +316,11 @@ public class RecyclerTest {
      * 普通的POJO: POJO中包含有Handle对象。
      */
     static final class HandledObject {
-
+        // 持有handler引用，可以调用Handle.recycle方法，回收自己
         Recycler.Handle<HandledObject> handle;
-
+        public void doService(){
+            System.out.println("doing ...");
+        }
         HandledObject(Recycler.Handle<HandledObject> handle) {
             this.handle = handle;
         }
