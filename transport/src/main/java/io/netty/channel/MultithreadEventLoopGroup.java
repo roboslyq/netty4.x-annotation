@@ -77,6 +77,10 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
         return new DefaultThreadFactory(getClass(), Thread.MAX_PRIORITY);
     }
 
+    /**
+     * NioEventLoopGroup(接收请求的线程组-ACCEPT,选择合适的线程NioEventLoop作为NioSocketChannel的IO操作线程)
+     * @return
+     */
     @Override
     public EventLoop next() {
         // super =  NioEventLoopGroup

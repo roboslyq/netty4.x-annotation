@@ -239,6 +239,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         /*
          * 因为是服务端，所以需要添加一个通用的Handler: ServerBootstrapAcceptor
          */
+        // 注意：此channelHandler仅存在于服务端，即与NioServerSocketChannel相关事件对应。
+        //   对应客户端，是使用新的childGroup进行初始化的，不会存在ServerBootstrapAcceptor。
+        //   也就是说，只有ACCEPT事件，才会进入ServerBootstrapAcceptor。而其它事件不会进入此Handler。
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) throws Exception {
@@ -329,7 +332,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
          *      pipeline.fireChannelRead(readBuf.get(i));
          *      ServerBootstrapAcceptor的channelRead接口将会被调用，用于处理channelRead事件
          * @param ctx
-         * @param msg NioSocketChannel
+         * @param msg NioSocketChannel（ 即一个客户端与服务端的具体连接）
          */
         @Override
         @SuppressWarnings("unchecked")
@@ -349,12 +352,14 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 child.attr((AttributeKey<Object>) e.getKey()).set(e.getValue());
             }
             // 将NioSocketChannel注册到childGroup，也就是Netty的WorkerGroup当中去
-            // 也就是完成Selector注册。childGroup = NioEventLoopGroup
+            // 也就是完成Selector注册。childGroup = NioEventLoopGroup，此Group实现了MultithreadEventLoopGroup
+            // childGroup = MultithreadEventLoopGroup,
             try {
-                // childGroup = MultithreadEventLoopGroup
                 // <在childGroup.register(child)这个方法里面，会触发ChannelInitializer#initChannel()方法>
                 // NioSocketChannel注册到work的eventLoop中，这个过程和NioServerSocketChannel注册到boss的eventLoop的过程一样
                 // Netty的线程模型，在workGroup中，完成IO的读写操作。
+                // 总之，在register方法中，完成了NioSocketChannel与NioEventLoop的绑定，即多个线程(NioEventLoop)同时监听不同的
+                //  NioSocketChannel。此即是Netty的线程模型。
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {

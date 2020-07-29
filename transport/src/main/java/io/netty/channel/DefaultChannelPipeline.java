@@ -1304,7 +1304,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     /**
-     * 构建channelPipeline
+     * 构建channelPipeline(通过异步任务PendingHandlerCallback来完成 ，启动一个独立的线程任务来执行)
      */
     private void callHandlerAddedForAllHandlers() {
         // 默认实现为PendingHandlerAddedTask
@@ -1323,10 +1323,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         // This must happen outside of the synchronized(...) block as otherwise handlerAdded(...) may be called while
         // holding the lock and so produce a deadlock if handlerAdded(...) will try to add another handler from outside
         // the EventLoop.
-
+        // 给任务task赋值为pendingHandlerCallbackHead
         PendingHandlerCallback task = pendingHandlerCallbackHead;
         while (task != null) {
+            // 执行任务task
             task.execute();
+            // 执行下一个任务
             task = task.next;
         }
     }

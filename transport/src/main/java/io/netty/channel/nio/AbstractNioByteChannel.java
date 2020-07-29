@@ -46,7 +46,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     private static final String EXPECTED_TYPES =
             " (expected: " + StringUtil.simpleClassName(ByteBuf.class) + ", " +
             StringUtil.simpleClassName(FileRegion.class) + ')';
-
+    /**
+     * 负责刷新发送已经 write 到缓存中的数据
+     * write 的数据没有直接写到 socket 中，而是写入到 ChannelOutboundBuffer 缓存中，等 flush 的时候才会写到 Socket 中进行发送数据
+     */
     private final Runnable flushTask = new Runnable() {
         @Override
         public void run() {
@@ -77,6 +80,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         return false;
     }
 
+    /**
+     *   NioByteUnsafe 重写了 AbstractNioUnsafe 类中的读取方法
+     * @return
+     */
     @Override
     protected AbstractNioUnsafe newUnsafe() {
         return new NioByteUnsafe();
@@ -131,7 +138,8 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         }
 
         /**
-         * 已经处于ACTIVE的连接：读事件处理
+         * 已经处于ACTIVE的连接：读事件处理（即正常的普通的I/O读事件，即客户端向服务端发送数据处理）
+         * 也就是读取需要处理的业务数据
          */
         @Override
         public final void read() {
@@ -152,12 +160,13 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             boolean close = false;
             try {
                 do {
-                    // 从内存池中分配内存获取ByteBuf对象
+                    // ======>核心技术：内存池和对象池：从内存池中分配内存获取ByteBuf对象
                     byteBuf = allocHandle.allocate(allocator);
-                    // ==>核心读方法：将NioSocketChannel中的数据读入到ByteBuf中
+                    // ======>核心读方法：将当前读到的数据保存到lastBytesRead中
                     allocHandle.lastBytesRead(
                             doReadBytes(byteBuf)//======>核心读方法，将数据读入到byteBuf中
                     );
+                    // 如果当前读到的数据小于等于0
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.
                         byteBuf.release();
@@ -165,11 +174,12 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                         close = allocHandle.lastBytesRead() < 0;
                         if (close) {
                             // There is nothing left to read as we received an EOF.
+                            // 表示没有数据，已经读完了，修改readPeanding为false
                             readPending = false;
                         }
                         break;
                     }
-
+                    // 否则表示当前已经读取到了数据，则读取到的数据次数+1
                     allocHandle.incMessagesRead(1);
                     readPending = false;
                     // 核心方法：pipeline读事件触发
@@ -223,6 +233,13 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         return doWriteInternal(in, in.current());
     }
 
+    /**
+     * 写消息，从缓冲区写到客户端
+     * @param in
+     * @param msg
+     * @return
+     * @throws Exception
+     */
     private int doWriteInternal(ChannelOutboundBuffer in, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
             ByteBuf buf = (ByteBuf) msg;
@@ -230,7 +247,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 in.remove();
                 return 0;
             }
-
+            // 写数据
             final int localFlushedAmount = doWriteBytes(buf);
             if (localFlushedAmount > 0) {
                 in.progress(localFlushedAmount);
@@ -261,20 +278,33 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         return WRITE_STATUS_SNDBUF_FULL;
     }
 
+    /**
+     * Channel写事件
+     * 当一次没有完成该消息的发送的时候（写半包），会继续循环发送。
+     * 设置发送循环的最大次数原因是当循环发送的时候，I/O 线程会一直尝试进行写操作，
+     * 此时I/O 线程无法处理其他的 I/O 操作，比如发送消息，而客户端接收数据比较慢，
+     * 这事会一直不停的尝试给客户端发送数据
+     * @param in
+     * @throws Exception
+     */
     @Override
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
         int writeSpinCount = config().getWriteSpinCount();
         do {
+            // 获取写缓存链表中第一条要写入的数据
             Object msg = in.current();
+            // 如果没有要写入的数据，取消注册到 selector 上的 OP_WRITE 事件。
             if (msg == null) {
                 // Wrote all messages.
                 clearOpWrite();
                 // Directly return here so incompleteWrite(...) is not called.
                 return;
             }
+            // 写入消息
             writeSpinCount -= doWriteInternal(in, msg);
         } while (writeSpinCount > 0);
-
+        // 如果未发送完成则在 selector 上注册 OP_WRITE 事件。
+        // 如果发送完成则在 selector 上取消 OP_WRITE 事件。
         incompleteWrite(writeSpinCount < 0);
     }
 
@@ -297,6 +327,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 "unsupported message type: " + StringUtil.simpleClassName(msg) + EXPECTED_TYPES);
     }
 
+    /**
+     *
+     * @param setOpWrite 数据是否发送完成
+     */
     protected final void incompleteWrite(boolean setOpWrite) {
         // Did not write completely.
         if (setOpWrite) {

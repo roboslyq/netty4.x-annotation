@@ -380,6 +380,12 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         );
     }
 
+    /**
+     * 将数据输出到NioSocketChannel中
+     * @param buf           the {@link ByteBuf} from which the bytes should be written
+     * @return
+     * @throws Exception
+     */
     @Override
     protected int doWriteBytes(ByteBuf buf) throws Exception {
         final int expectedWrittenBytes = buf.readableBytes();

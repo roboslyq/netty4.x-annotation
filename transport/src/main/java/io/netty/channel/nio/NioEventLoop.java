@@ -864,7 +864,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
                 // 核心的常用方法===> 读事件处理
                 // 当事件为OP_ACCEPT时(即ch为Server端:NioServerSocketChannel)，unsafe = AbstractNioMessageChannel#NioMessageUnsafe
-                // 当事件为OP_READ时(即ch为Client端:NioSocketChannel)，unsafe = AbstractNioByteChannel#NioByteUnsafe
+                // 具体实现方法是：AbstractNioMessageChannel#newUnsafe()
+                // 当事件为OP_READ时(即ch为Client端:NioSocketChannel)，unsafe = AbstractNioByteChannel#NioSocketChannelUnsafe
+                // 具体实现方法是：NioSocketChannel#newUnsafe(),此时直接创建NioSocketChannelUnsafe对象，此对象继承NioByteUnsafe。
                 // 入站步骤：OP_ACCEPT_1
                 unsafe.read();
             }
