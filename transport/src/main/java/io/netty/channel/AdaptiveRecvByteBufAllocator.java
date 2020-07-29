@@ -189,6 +189,10 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
         this.initial = initial;
     }
 
+    /**
+     * 创建内存分配Handle
+     * @return
+     */
     @SuppressWarnings("deprecation")
     @Override
     public Handle newHandle() {
