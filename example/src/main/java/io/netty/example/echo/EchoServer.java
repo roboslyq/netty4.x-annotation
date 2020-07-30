@@ -75,6 +75,8 @@ public final class EchoServer {
         //初始化用于SocketChannel的I/O读写工作的从"线程池"；
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         final EchoServerHandler serverHandler = new EchoServerHandler();
+        final EchoServerHandlerNotShared serverHandlerNotShared = new EchoServerHandlerNotShared();
+        final EchoServerHandlerNotShared1 serverHandlerNotShared1 = new EchoServerHandlerNotShared1();
         try {
             // 创建辅助启动类ServerBootstrap，并设置相关配置：
             ServerBootstrap b = new ServerBootstrap();
@@ -101,6 +103,8 @@ public final class EchoServer {
                      //打开日志组件，方便调试
                      p.addLast(new LoggingHandler(LogLevel.INFO));
                      p.addLast(serverHandler);
+                     p.addLast(serverHandlerNotShared);
+                     p.addLast(serverHandlerNotShared1);
                  }
              });
 

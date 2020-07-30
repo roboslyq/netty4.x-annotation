@@ -184,7 +184,8 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     // 否则表示当前已经读取到了数据，则读取到的数据次数+1
                     allocHandle.incMessagesRead(1);
                     readPending = false;
-                    // 核心方法：pipeline读事件触发
+                    // 核心方法：pipeline读事件触发(最开始的事件中的byteBuf对象是PooledUnsafeDirectByteBuf)
+                    // 所以，如果没有经过解码器，则对应Handle接收到的Object msg就是PooledUnsafeDirectByteBuf对象。
                     pipeline.fireChannelRead(byteBuf);
                     byteBuf = null;
                 } while (allocHandle.continueReading());

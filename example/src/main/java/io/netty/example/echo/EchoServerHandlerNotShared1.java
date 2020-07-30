@@ -15,50 +15,48 @@
  */
 package io.netty.example.echo;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
 /**
- * Handler implementation for the echo client.  It initiates the ping-pong
- * traffic between the echo client and server by sending the first message to
- * the server.
+ * Handler implementation for the echo server.
  */
-public class EchoClientHandler extends ChannelInboundHandlerAdapter {
-
-    private final ByteBuf firstMessage;
-
-    /**
-     * Creates a client-side handler.
-     */
-    public EchoClientHandler() {
-        firstMessage = Unpooled.buffer(EchoClient.SIZE);
-        for (int i = 0; i < firstMessage.capacity(); i ++) {
-            firstMessage.writeByte((byte) i);
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) {
-        System.out.println("channelActive:");
-        ctx.writeAndFlush(firstMessage);
+public class EchoServerHandlerNotShared1 extends ChannelInboundHandlerAdapter {
+    private static int CONSTANT_COUNT = 1;
+    public EchoServerHandlerNotShared1(){
+        System.out.println("第 "+ (CONSTANT_COUNT++) +"次初始化");
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        System.out.println("channelRead:");
+        User1 user = (User1)msg;
+        System.out.println(user.getClass() + ":" +user.getName());
         ctx.write(msg);
+    }
+
+
+    @Override
+    public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("注册Registered");
+        ctx.fireChannelRegistered();
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("渠道Active");
+        ctx.fireChannelActive();
+    }
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("渠道InActive");
+
+        ctx.fireChannelInactive();
     }
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) {
-       ctx.flush();
+        System.out.println("读完成");
+        ctx.flush();
     }
 
     @Override

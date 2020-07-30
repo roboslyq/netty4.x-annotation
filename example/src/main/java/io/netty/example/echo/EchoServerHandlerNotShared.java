@@ -30,8 +30,10 @@ public class EchoServerHandlerNotShared extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        System.out.println("not shared 读入数据：" +msg);
-        ctx.write(msg);
+        User user = (User)msg;
+        System.out.println(user.getClass() + ":" +user.getName());
+//        ctx.write(msg);
+        ctx.fireChannelRead(new User1(2,"roboslyq2"));
     }
 
 
