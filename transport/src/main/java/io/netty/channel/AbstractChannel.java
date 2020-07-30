@@ -1001,6 +1001,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        /**
+         * 输出数据（仅输出到缓冲区ChannelOutboundBuffer，未输出到通道)
+         * @param msg
+         * @param promise
+         */
         @Override
         public final void write(Object msg, ChannelPromise promise) {
             assertEventLoop();
@@ -1029,7 +1034,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 ReferenceCountUtil.release(msg);
                 return;
             }
-
+            // 输出数据到缓冲区
             outboundBuffer.addMessage(msg, size, promise);
         }
 

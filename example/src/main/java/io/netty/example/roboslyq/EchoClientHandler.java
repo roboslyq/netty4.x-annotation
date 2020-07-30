@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.netty.example.echo;
+package io.netty.example.roboslyq;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -48,7 +48,7 @@ public class EchoClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        System.out.println("channelRead:");
+        System.out.println("channelRead:" + msg);
         ctx.writeAndFlush(msg);
     }
 
