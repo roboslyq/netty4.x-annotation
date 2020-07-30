@@ -32,7 +32,7 @@ public class EchoServerHandlerNotShared extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         User user = (User)msg;
         System.out.println(user.getClass() + ":" +user.getName());
-//        ctx.write(msg);
+        ctx.writeAndFlush("EchoServerHandlerNotShared " + msg);
         ctx.fireChannelRead(new User1(2,"roboslyq2"));
     }
 

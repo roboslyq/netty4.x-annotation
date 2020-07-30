@@ -29,7 +29,7 @@ public class EchoServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         System.out.println("读入数据：" +msg);
-//        ctx.write(msg);
+        ctx.write("EchoServerHandler" + msg);
         ctx.fireChannelRead(new User(1,"roboslyq"));
     }
 

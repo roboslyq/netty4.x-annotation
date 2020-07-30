@@ -101,6 +101,8 @@ public final class EchoServer {
                          p.addLast(sslCtx.newHandler(ch.alloc()));
                      }
                      //打开日志组件，方便调试
+                     // 1、Netty中，Handler是有顺序的，就是链式调用。下一个节点依赖于上一个节点处理后的数据。
+                     // 2、如果每一个节点都调用ChannelHandlerContext.write(xxx)是什么结果？
                      p.addLast(new LoggingHandler(LogLevel.INFO));
                      p.addLast(serverHandler);
                      p.addLast(serverHandlerNotShared);
