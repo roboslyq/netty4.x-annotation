@@ -44,8 +44,10 @@ public class DefaultServerSocketChannelConfig extends DefaultChannelConfig
 
     /**
      * Creates a new instance.
+     * 构造函数，创建一个实例
      */
     public DefaultServerSocketChannelConfig(ServerSocketChannel channel, ServerSocket javaSocket) {
+        // 调用父类构造函数
         super(channel);
         if (javaSocket == null) {
             throw new NullPointerException("javaSocket");

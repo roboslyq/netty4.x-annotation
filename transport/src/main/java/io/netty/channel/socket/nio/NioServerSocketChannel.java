@@ -76,6 +76,9 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         }
     }
 
+    /**
+     * ======> 重要的配置项ServerSocketChannelConfig。客户端与之对应的是就NioSocketChannel#NioSocketChannelConfig
+     */
     private final ServerSocketChannelConfig config;
 
     /**
@@ -101,6 +104,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     public NioServerSocketChannel(ServerSocketChannel channel) {
         //一直调用父类的初始化方法，在父类中完成ChannelPipeline的创建。
         super(null, channel, SelectionKey.OP_ACCEPT);
+        // 重要的配置项
         config = new NioServerSocketChannelConfig(this, javaChannel().socket());
     }
 
@@ -229,8 +233,12 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * 服务端的配置项
+     */
     private final class NioServerSocketChannelConfig extends DefaultServerSocketChannelConfig {
         private NioServerSocketChannelConfig(NioServerSocketChannel channel, ServerSocket javaSocket) {
+            //调用父类配置
             super(channel, javaSocket);
         }
 

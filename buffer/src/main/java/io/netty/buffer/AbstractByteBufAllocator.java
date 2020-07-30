@@ -154,11 +154,18 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return heapBuffer(DEFAULT_INITIAL_CAPACITY);
     }
 
+    /**
+     * 分配内存
+     * @param initialCapacity 默认初始容量
+     * @return ByteBuf
+     */
     @Override
     public ByteBuf ioBuffer(int initialCapacity) {
         if (PlatformDependent.hasUnsafe() || isDirectBufferPooled()) {
+            // 返回堆外内存(直接内存)
             return directBuffer(initialCapacity);
         }
+        // 返回堆内存
         return heapBuffer(initialCapacity);
     }
 
@@ -198,15 +205,21 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return directBuffer(DEFAULT_INITIAL_CAPACITY, DEFAULT_MAX_CAPACITY);
     }
 
+    /**
+     * 返回堆外内存
+     * @param initialCapacity
+     * @return
+     */
     @Override
     public ByteBuf directBuffer(int initialCapacity) {
+        //返回堆外内存
         return directBuffer(initialCapacity, DEFAULT_MAX_CAPACITY);
     }
 
     /**
      * 申请Direct Buffer
-     * @param initialCapacity
-     * @param maxCapacity
+     * @param initialCapacity  初始容量
+     * @param maxCapacity   最大容量
      * @return
      */
     @Override

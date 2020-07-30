@@ -67,7 +67,12 @@ public class DefaultChannelConfig implements ChannelConfig {
     private volatile WriteBufferWaterMark writeBufferWaterMark = WriteBufferWaterMark.DEFAULT;
     private volatile boolean pinEventExecutor = true;
 
+    /**
+     * 构造函数
+     * @param channel
+     */
     public DefaultChannelConfig(Channel channel) {
+        // 实例化了AdaptiveRecvByteBufAllocator
         this(channel, new AdaptiveRecvByteBufAllocator());
     }
 

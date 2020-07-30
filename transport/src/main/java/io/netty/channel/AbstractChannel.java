@@ -532,6 +532,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         @Override
         public RecvByteBufAllocator.Handle recvBufAllocHandle() {
             if (recvHandle == null) {
+                // 服务端，对应NioServerSocketChannel，config()返回DefaultServerSocketChannelConfig
+                // 客户羰，对应NioSocketChannel,config()返回内部类NioSocketChannel#NioSocketChannelConfig
+                // 对应的RecvByteBufAllocator在父类DefaultChannelConfig构造函数完成初始化，类型为AdaptiveRecvByteBufAllocator
                 recvHandle = config().getRecvByteBufAllocator().newHandle();
             }
             return recvHandle;

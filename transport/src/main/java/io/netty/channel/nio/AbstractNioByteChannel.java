@@ -150,10 +150,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             }
             // 获取对应的ChannelPipeline
             final ChannelPipeline pipeline = pipeline();
-//            获取一个ByteBuf的内存分配器, 用于分配ByteBuf
+//            获取一个ByteBuf的内存分配器, 用于分配ByteBuf。对应的是ByteBufAllocator.DEFAULT
             final ByteBufAllocator allocator = config.getAllocator();
 //          allocHandle =    AdaptiveRecvByteBufAllocator$HandlerImpl
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
+            //因为HandlerImpl继承了MaxMessageHandler，“  HandleImpl extends MaxMessageHandle”
             allocHandle.reset(config);
 
             ByteBuf byteBuf = null;
@@ -161,6 +162,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             try {
                 do {
                     // ======>核心技术：内存池和对象池：从内存池中分配内存获取ByteBuf对象
+                    // MaxMessageHandler.allocate(allocator)
                     byteBuf = allocHandle.allocate(allocator);
                     // ======>核心读方法：将当前读到的数据保存到lastBytesRead中
                     allocHandle.lastBytesRead(
