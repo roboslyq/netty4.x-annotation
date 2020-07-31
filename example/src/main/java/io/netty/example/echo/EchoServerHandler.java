@@ -15,7 +15,6 @@
  */
 package io.netty.example.echo;
 
-import com.sun.tools.internal.xjc.reader.xmlschema.bindinfo.BIConversion;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -28,7 +27,7 @@ public class EchoServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        System.out.println("读入数据：" +msg);
+        System.out.println("收到客户端请求数据：" +msg);
         ctx.write("EchoServerHandler" + msg);
         ctx.fireChannelRead(new User(1,"roboslyq"));
     }

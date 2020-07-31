@@ -29,7 +29,7 @@ public class EchoServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         System.out.println("读入数据：" +msg);
-        ctx.writeAndFlush("已收到请求你的请求："  + msg);
+        ctx.writeAndFlush("你的请求已经收到，并成功处理\n");
     }
 
 

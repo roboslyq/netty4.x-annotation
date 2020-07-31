@@ -20,6 +20,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Handler implementation for the echo client.  It initiates the ping-pong
  * traffic between the echo client and server by sending the first message to
@@ -28,7 +30,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 public class EchoClientHandler extends ChannelInboundHandlerAdapter {
 
     private final ByteBuf firstMessage;
-
+    private static AtomicInteger i = new AtomicInteger( 0 );
     /**
      * Creates a client-side handler.
      */
@@ -42,14 +44,19 @@ public class EchoClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        System.out.println("channelActive:");
-        ctx.writeAndFlush(firstMessage);
+        System.out.println("active事件，向服务器发送第1条信息:" + firstMessage);
+        ctx.writeAndFlush( "服务器，你好，这是我的第" + i.getAndIncrement()+ "\n条数据\n");
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         System.out.println("channelRead:" + msg);
-        ctx.writeAndFlush(msg);
+        try {
+            Thread.sleep( 10000 );
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        ctx.writeAndFlush( "服务器，你好，这是我的第" + i.getAndIncrement()+ "\n条数据\n");
     }
 
     @Override

@@ -77,13 +77,16 @@ import java.util.List;
 public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter {
 
     /**
+     * Cumulate：累加
      * Cumulate {@link ByteBuf}s by merge them into one {@link ByteBuf}'s, using memory copies.
+     * 使用内存copy技术，将多个ByteBuf合并为一个ByteBuf
      */
     public static final Cumulator MERGE_CUMULATOR = new Cumulator() {
         @Override
         public ByteBuf cumulate(ByteBufAllocator alloc, ByteBuf cumulation, ByteBuf in) {
             try {
                 final ByteBuf buffer;
+                // 判断容量是否足够，如果不够，则进行扩容
                 if (cumulation.writerIndex() > cumulation.maxCapacity() - in.readableBytes()
                     || cumulation.refCnt() > 1 || cumulation.isReadOnly()) {
                     // Expand cumulation (by replace it) when either there is not more room in the buffer
@@ -93,10 +96,12 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     // See:
                     // - https://github.com/netty/netty/issues/2327
                     // - https://github.com/netty/netty/issues/1764
+                    // 扩容
                     buffer = expandCumulation(alloc, cumulation, in.readableBytes());
                 } else {
                     buffer = cumulation;
                 }
+                // 写入数据
                 buffer.writeBytes(in);
                 return buffer;
             } finally {
@@ -111,7 +116,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Cumulate {@link ByteBuf}s by add them to a {@link CompositeByteBuf} and so do no memory copy whenever possible.
      * Be aware that {@link CompositeByteBuf} use a more complex indexing implementation so depending on your use-case
      * and the decoder implementation this may be slower then just use the {@link #MERGE_CUMULATOR}.
-     *
+     * 组合累加器，将多个ByteBuf组合成一个CompositeByteBuf
      */
     public static final Cumulator COMPOSITE_CUMULATOR = new Cumulator() {
         @Override
@@ -154,11 +159,11 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     private static final byte STATE_CALLING_CHILD_DECODE = 1;
     private static final byte STATE_HANDLER_REMOVED_PENDING = 2;
     /**
-     * 用来保存累计读取到的字节
+     * 用来保存累计读取到的字节（相当于容器，每一个Channel都有自己的容器，因此，不同客户端的TCP请求，互不干扰）
      * */
     ByteBuf cumulation;
     /**
-     * 累计器，把从channel获取到的字节累计起来。主要有两种实现
+     * 累计器，把从channel获取到的字节累计起来。主要有两种实现。默认是MERGE_CUMULATOR
      */
     private Cumulator cumulator = MERGE_CUMULATOR;
     private boolean singleDecode;
@@ -173,6 +178,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * </ul>
      */
     private byte decodeState = STATE_INIT;
+    // 默认16次
     private int discardAfterReads = 16;
     private int numReads;
 
@@ -273,7 +279,12 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     protected void handlerRemoved0(ChannelHandlerContext ctx) throws Exception { }
 
     /**
-     * ========>入口方法：读信息
+     * ========>入口方法：读信息,每次从TCP缓冲区读到数据都会调用的方法
+     * 触发点在AbstractNioByteChannel的read方法中，里面有个while循环不断读取，读取到一次就触发一次channelRead
+     * 1.累加数据
+     * 2.将累加到的数据传递给业务进行业务拆包
+     * 3.清理字节容器
+     * 4.传递业务数据包给业务解码器处理
      * @param ctx
      * @param msg 可能为ByteBuf或者NioChannelSocket
      * @throws Exception
@@ -281,9 +292,10 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
+            // 从对象池中取出一个List：此处也使用了对象池技术
             CodecOutputList out = CodecOutputList.newInstance();
             try {
-//                步骤一：把当前的ByteBuf与上次未处理的ByteBuf合并：
+//                步骤一：1.累加数据:把当前的ByteBuf与上次未处理的ByteBuf合并。
                 ByteBuf data = (ByteBuf) msg;
                 first = cumulation == null; //判断是不是第一次读取数据
                 if (first) {
@@ -292,7 +304,8 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     // 不是第一次就调用累加器，进行累加
                     cumulation = cumulator.cumulate(ctx.alloc(), cumulation, data);
                 }
-//                步骤二：处理子类decode后添加到List中的数据：
+//                步骤二：将累加到的数据传递给业务进行拆包，处理子类decode后添加到List中的数据。
+                // 此时字节容器里的数据已是目前未拆包部分的所有的数据
                 callDecode(ctx, cumulation, out);
             } catch (DecoderException e) {
                 throw e;
@@ -315,7 +328,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
                 int size = out.size();
                 decodeWasNull = !out.insertSinceRecycled();
-                //触发渠道的channelRead事件，size是触发多少次事件
+                //  步骤三：传递业务数据包给业务解码器处理: 触发渠道的channelRead事件，size是触发多少次事件。
                 fireChannelRead(ctx, out, size);
                 //回收解码结果
                 out.recycle();
@@ -442,13 +455,16 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * @param out           the {@link List} to which decoded messages should be added
      */
     // 步骤二：处理子类decode后添加到List中的数据：
+    // 将尝试将字节容器的数据拆分成业务数据包塞到业务数据容器out中
     protected void callDecode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
         try {
+            // 如果累计区还有可读字节，循环解码，因为这里in有可能是粘包，即多次完整的数据包粘在一起，通过换行符连接
+            // 下面的decode方法只能处理一个完整的数据包，所以这里循环处理粘包
             // 循环调用：只要in可读
             while (in.isReadable()) {
                 /** 调用子类的decode方法前处理List了，因为是在一个while循环里 */
                 int outSize = out.size();
-                if (outSize > 0) {// 表未已经处理过数据，不是第1次读
+                if (outSize > 0) {// / 上次循环成功解码：表示已经处理过数据，不是第1次读，先将旧数据处理掉
                     // 触发channelRead事件
                     fireChannelRead(ctx, out, outSize);
                     out.clear();
@@ -554,6 +570,13 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
         }
     }
 
+    /**
+     * 扩容也是一个内存拷贝操作，新增的大小即是新读取数据的大小
+     * @param alloc
+     * @param cumulation
+     * @param readable
+     * @return
+     */
     static ByteBuf expandCumulation(ByteBufAllocator alloc, ByteBuf cumulation, int readable) {
         ByteBuf oldCumulation = cumulation;
         cumulation = alloc.buffer(oldCumulation.readableBytes() + readable);
