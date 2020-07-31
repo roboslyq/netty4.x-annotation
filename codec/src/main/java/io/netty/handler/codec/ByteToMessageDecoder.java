@@ -71,7 +71,11 @@ import java.util.List;
  */
 /*
  *  入口为channelReads
- * 步骤一：把当前的ByteBuf与上次未处理的ByteBuf合并：
+ * 步骤一：把当前的ByteBuf与上次未处理的ByteBuf合并(每一个TCP连接是独立的，因此，每一个连接都有自己的ByteToMessageDecoder
+ * 所以，不需要考虑不同客户端与服务端之前连接。
+ * TCP的拆包，粘包是针对同一个连接而言。同一连接，对应的相应的Handler也都是私有的，不需要共享 。
+ * 如果共享,在构造函数中的方法 ensureNotSharable()会抛出异常
+ * )
  *
  */
 public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter {
@@ -178,11 +182,13 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * </ul>
      */
     private byte decodeState = STATE_INIT;
-    // 默认16次
+    // 默认读16次，如果读16次还未完成，则丢弃
     private int discardAfterReads = 16;
+    // 已读次数
     private int numReads;
-
+    // 构造函数
     protected ByteToMessageDecoder() {
+        // 注意: 这个解码器一定是独立的,不可共享的,如果共享则抛出异常
         ensureNotSharable();
     }
 
@@ -292,19 +298,21 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
-            // 从对象池中取出一个List：此处也使用了对象池技术
+            // 从对象池中取出一个List<Object>：此处也使用了对象池技术
             CodecOutputList out = CodecOutputList.newInstance();
             try {
-//                步骤一：1.累加数据:把当前的ByteBuf与上次未处理的ByteBuf合并。
+                // 步骤一：1.累加数据:把当前的ByteBuf与上次未处理的ByteBuf合并。
                 ByteBuf data = (ByteBuf) msg;
-                first = cumulation == null; //判断是不是第一次读取数据
+                first = cumulation == null;
+                // 判断是不是第一次读取数据
                 if (first) {
-                    cumulation = data; //是第一次就直接赋值
+                    // 是第一次就直接赋值,将cumulation直接指向data即可
+                    cumulation = data;
                 } else {
-                    // 不是第一次就调用累加器，进行累加
+                    // 不是第一次就调用累加器，进行累加.此时,cumulation中的数据是完全的.
                     cumulation = cumulator.cumulate(ctx.alloc(), cumulation, data);
                 }
-//                步骤二：将累加到的数据传递给业务进行拆包，处理子类decode后添加到List中的数据。
+                // 步骤二：将累加到的数据传递给业务进行拆包，处理子类decode后添加到List中的数据。
                 // 此时字节容器里的数据已是目前未拆包部分的所有的数据
                 callDecode(ctx, cumulation, out);
             } catch (DecoderException e) {
@@ -334,7 +342,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 out.recycle();
             }
         } else {
-            //如果是NioSocketChannel，
+            //如果是其它(例如NioSocketChannel),则直接交给下一个Handle处理
             ctx.fireChannelRead(msg);
         }
     }
@@ -458,14 +466,16 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     // 将尝试将字节容器的数据拆分成业务数据包塞到业务数据容器out中
     protected void callDecode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
         try {
-            // 如果累计区还有可读字节，循环解码，因为这里in有可能是粘包，即多次完整的数据包粘在一起，通过换行符连接
+            // 如果累计区还有可读字节，循环解码，因为这里in有可能是粘包，即多次完整的数据包粘在一起，
+            // 通过换行符连接。
             // 下面的decode方法只能处理一个完整的数据包，所以这里循环处理粘包
             // 循环调用：只要in可读
             while (in.isReadable()) {
-                /** 调用子类的decode方法前处理List了，因为是在一个while循环里 */
+                // 调用子类的decode方法前处理List了，因为是在一个while循环里
                 int outSize = out.size();
-                if (outSize > 0) {// / 上次循环成功解码：表示已经处理过数据，不是第1次读，先将旧数据处理掉
-                    // 触发channelRead事件
+                // 上次循环成功解码：表示已经处理过数据，不是第1次读，先将旧数据处理掉
+                if (outSize > 0) {
+                    // 触发channelRead事件，处理已经解析成功的数据
                     fireChannelRead(ctx, out, outSize);
                     out.clear();
                     // Check if this handler was removed before continuing with decoding.
@@ -476,9 +486,10 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     if (ctx.isRemoved()) {
                         break;
                     }
+                    // 重置为0
                     outSize = 0;
                 }
-
+                // ByteBuf已经读取的数据字节数
                 int oldInputLength = in.readableBytes();
                 // 调用子类具体的decode实现
                 decodeRemovalReentryProtection(ctx, in, out);
