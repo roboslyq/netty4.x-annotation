@@ -56,7 +56,7 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
  * +--------+----------------+      +--------+----------------+
  * </pre>
  *
- * <h3>2 bytes length field at offset 0, strip header</h3>
+ * <h3>2 bytes length field at offset 0, strip(剥去，拆卸) header</h3>
  *
  * Because we can get the length of the content by calling
  * {@link ByteBuf#readableBytes()}, you might want to strip the length

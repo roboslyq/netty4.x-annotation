@@ -39,12 +39,14 @@ import java.util.List;
  * </pre>
  */
 public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
-
+    /**
+     * 帧长度：即定长报文的长度
+     */
     private final int frameLength;
 
     /**
      * Creates a new instance.
-     *
+     * 构造函数，指定室长报文的长度
      * @param frameLength the length of the frame
      */
     public FixedLengthFrameDecoder(int frameLength) {
@@ -52,9 +54,18 @@ public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
         this.frameLength = frameLength;
     }
 
+    /**
+     * 解码入口
+     * @param ctx           the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
+     * @param in            the {@link ByteBuf} from which to read data
+     * @param out           the {@link List} to which decoded messages should be added
+     * @throws Exception
+     */
     @Override
     protected final void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+        // 解码
         Object decoded = decode(ctx, in);
+        // 如果解出的结果不为空，则存入结果集out中。
         if (decoded != null) {
             out.add(decoded);
         }
@@ -70,9 +81,12 @@ public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
      */
     protected Object decode(
             @SuppressWarnings("UnusedParameters") ChannelHandlerContext ctx, ByteBuf in) throws Exception {
+        // 如果当前缓冲区的可读字节长度小于指定的帧长度，表明这不是一个完整的报文。不进行处理！！(TCP已经接收到的字节仍然
+        // 保留在缓冲区ByteBuf中)
         if (in.readableBytes() < frameLength) {
             return null;
         } else {
+            // 一次仅读取一段报文，即始in.readableBytes() > frameLength,也仅读取frameLength长度的报文。
             return in.readRetainedSlice(frameLength);
         }
     }

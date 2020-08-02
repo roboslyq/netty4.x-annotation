@@ -489,7 +489,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     // 重置为0
                     outSize = 0;
                 }
-                // ByteBuf已经读取的数据字节数
+                // ByteBuf中可读取的数据字节数，即当前TCP已经接收到的字节数
                 int oldInputLength = in.readableBytes();
                 // 调用子类具体的decode实现
                 decodeRemovalReentryProtection(ctx, in, out);
@@ -501,21 +501,29 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 if (ctx.isRemoved()) {
                     break;
                 }
-
+                // 此时outSize等于0，表明没有读取到数据，因为如果不为0，会被处理掉。
+                // 正常情况应该不相等，因为outSize此时为0，如果有解析出来的报文（没有半包数据），那么out.size()应该大于0
                 if (outSize == out.size()) {
+                    // 上面赋值语句为：int oldInputLength = in.readableBytes();
+                    // 如果oldInputLength == in.readableBytes()，表明是一个半包数据，当前解码器还未读取任何数据。
+                    // 因此不需要下一次循环，等待下一次可读事件读取新的数据。
                     if (oldInputLength == in.readableBytes()) {
                         break;
                     } else {
+                        // 否则证明已经读取到了数据，继承处理out
                         continue;
                     }
                 }
-
+                // 能进入到这里，表明已经读取到了数据，已经读取到了数据，oldInputLength == in.readableBytes()不应该相等。
+                // 因为读取了数据，readableBytes肯定会减小
+                // 当oldInputLength == in.readableBytes()时，表明没有读取到任务数据，但是又读取到了数据，表示出现了异常。
+                // 因为如果没读取到数据，会进入上面的 if (outSize == out.size())循环。
                 if (oldInputLength == in.readableBytes()) {
                     throw new DecoderException(
                             StringUtil.simpleClassName(getClass()) +
                                     ".decode() did not read anything but decoded a message.");
                 }
-
+                // 如果是“单次”模型，则中断，否则进入下一次循环
                 if (isSingleDecode()) {
                     break;
                 }
