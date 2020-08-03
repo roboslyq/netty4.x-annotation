@@ -21,6 +21,8 @@ import io.netty.handler.codec.DecoderResult;
 
 /**
  * The last {@link HttpContent} which has trailing headers.
+ * 如果ByteBuf的长度是固定的，则请求的body过大，可能包含多个HttpContent，其中
+ * 最后一个为LastHttpContent(空的HttpContent),用来说明body的结束。
  */
 public interface LastHttpContent extends HttpContent {
 

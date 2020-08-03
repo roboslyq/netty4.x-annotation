@@ -17,7 +17,8 @@ package io.netty.handler.codec.http;
 
 /**
  * An HTTP request.
- *
+ * 很多http server(比如tomcat,resin)的实现都是基于servlet，但是netty对http实现并没有基于servlet。
+ * 是一套完全独立的，完整的Http协议抽象！！！
  * <h3>Accessing Query Parameters and Cookie</h3>
  * <p>
  * Unlike the Servlet API, a query string is constructed and decomposed by

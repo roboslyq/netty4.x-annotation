@@ -187,14 +187,18 @@ public abstract class HttpObjectDecoder extends ByteToMessageDecoder {
         if (resetRequested) {
             resetNow();
         }
-
+        // 根据当前状态判断解码到哪了，每个case后面都没有break，所以是顺序执行case的。
         switch (currentState) {
+            // 跳过控制符和空白符，从第一个非控制符和空白符开始，如果返回false,
+            // 则认为没有找到数据包的，直接结束解码
         case SKIP_CONTROL_CHARS: {
             if (!skipControlCharacters(buffer)) {
                 return;
             }
+            // 进入下一状态
             currentState = State.READ_INITIAL;
         }
+        // 将状态标志为读取请求行，下一步就是解码请求
         case READ_INITIAL: try {
             AppendableCharSequence line = lineParser.parse(buffer);
             if (line == null) {
@@ -214,6 +218,7 @@ public abstract class HttpObjectDecoder extends ByteToMessageDecoder {
             out.add(invalidMessage(buffer, e));
             return;
         }
+        //    没有break，解析请求头
         case READ_HEADER: try {
             State nextState = readHeaders(buffer);
             if (nextState == null) {
@@ -267,6 +272,7 @@ public abstract class HttpObjectDecoder extends ByteToMessageDecoder {
             out.add(invalidMessage(buffer, e));
             return;
         }
+        // 读取变长的body
         case READ_VARIABLE_LENGTH_CONTENT: {
             // Keep reading data as a chunk until the end of connection is reached.
             int toRead = Math.min(buffer.readableBytes(), maxChunkSize);
@@ -276,6 +282,7 @@ public abstract class HttpObjectDecoder extends ByteToMessageDecoder {
             }
             return;
         }
+        // 读取固定长度的body
         case READ_FIXED_LENGTH_CONTENT: {
             int readLimit = buffer.readableBytes();
 
@@ -369,6 +376,7 @@ public abstract class HttpObjectDecoder extends ByteToMessageDecoder {
             out.add(invalidChunk(buffer, e));
             return;
         }
+        // 消息解析失败，丢弃buffer中的内容
         case BAD_MESSAGE: {
             // Keep discarding until disconnection.
             buffer.skipBytes(buffer.readableBytes());

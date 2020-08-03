@@ -20,6 +20,9 @@ import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.ChannelPipeline;
 
 /**
+ * 是对body进行封装，本质上就是一个ByteBuf。
+ * 如果ByteBuf的长度是固定的，则请求的body过大，可能包含多个HttpContent，其中
+ * 最后一个为LastHttpContent(空的HttpContent),用来说明body的结束。
  * An HTTP chunk which is used for HTTP chunked transfer-encoding.
  * {@link HttpObjectDecoder} generates {@link HttpContent} after
  * {@link HttpMessage} when the content is large or the encoding of the content
