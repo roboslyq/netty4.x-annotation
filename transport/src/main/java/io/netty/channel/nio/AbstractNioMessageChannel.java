@@ -76,9 +76,10 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         public void read() {
             // 确保在当前线程与EventLoop中的一致
             assert eventLoop().inEventLoop();
-            // 获取 NioServerSocketChannel config配置
+            // 内部类NioMessageUnsafe获取外部类 NioServerSocketChannel#config配置
             final ChannelConfig config = config();
-            // 返回一个NioServerSocketChannel 的 ChannelPipeline。即Reactor模式中主线程组的ChannelPipeline
+            // 内部类NioMessageUnsafe获取外部类 NioServerSocketChannel#ChannelPipeline。
+            // 即Reactor模式中主线程组的ChannelPipeline
             final ChannelPipeline pipeline = pipeline();
             // 获取RecvByteBuf 分配器 Handle
             // allocHandle = AdaptiveRecvByteBufAllocator,里面
@@ -86,7 +87,6 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
             // 重置已累积的所有计数器，并为下一个读取循环读取多少消息/字节数据提供建议
             allocHandle.reset(config);
-
             boolean closed = false;
             Throwable exception = null;
             try {
