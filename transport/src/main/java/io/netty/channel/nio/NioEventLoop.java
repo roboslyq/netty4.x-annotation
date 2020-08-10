@@ -62,15 +62,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *      将用户线程的操作封装成Task放入消息队列中，由I/O线程负责执行，这样就实现了局部无锁化。
  *   2)定时任务：
  *      调用NioEventLoop的schedule（Runnable command,long delay,TimeUnit unit）方法execute(实现。
-
  */
 public final class NioEventLoop extends SingleThreadEventLoop {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(NioEventLoop.class);
 
-    private static final int CLEANUP_INTERVAL = 256; // XXX Hard-coded value, but won't need customization.
+    /** XXX Hard-coded value, but won't need customization. */
+    private static final int CLEANUP_INTERVAL = 256;
 
-    //是否禁用 SelectionKey 的优化，默认开启
+    /** 是否禁用 SelectionKey 的优化，默认开启 */
     private static final boolean DISABLE_KEY_SET_OPTIMIZATION =
             SystemPropertyUtil.getBoolean("io.netty.noKeySetOptimization", false);
 
@@ -85,6 +85,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     private final IntSupplier selectNowSupplier = new IntSupplier() {
         @Override
         public int get() throws Exception {
+            // 执行selectNow，不会阻塞，返回就绪事件数量
             return selectNow();
         }
     };
@@ -130,7 +131,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 logger.debug("Unable to get/set System Property: " + key, e);
             }
         }
-        // 初始化SELECTOR_AUTO_REBUILD_THRESHOLD 属性。默认 512 。
+        // 初始化SELECTOR_AUTO_REBUILD_THRESHOLD 属性：默认 512 。threshold指临界值
         int selectorAutoRebuildThreshold = SystemPropertyUtil.getInt("io.netty.selectorAutoRebuildThreshold", 512);
         if (selectorAutoRebuildThreshold < MIN_PREMATURE_SELECTOR_RETURNS) {
             selectorAutoRebuildThreshold = 0;
@@ -146,17 +147,18 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     /**
      * The NIO {@link Selector}.
-     * NioEventLoop需要处理网络I/O读写事件，因此它必须聚合一个多路复用器对象(Selector)
+     * NioEventLoop需要处理网络I/O读写事件，因此它必须聚合一个多路复用器对象(Selector)。具体实现为SelectorImpl
+     *
      */
     private Selector selector;
 
-    // 未包装的 Selector 对象
+    /** 未包装的 Selector 对象*/
     private Selector unwrappedSelector;
 
-    // 注册的 SelectionKey 集合。Netty 自己实现，经过优化。
+    /** 注册的 SelectionKey 集合。Netty 自己实现，经过优化。*/
     private SelectedSelectionKeySet selectedKeys;
 
-    // SelectorProvider 对象，用于创建 Selector 对象
+    /** SelectorProvider 对象，用于创建 Selector 对象*/
     private final SelectorProvider provider;
 
     /**
@@ -164,20 +166,20 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * break out of its selection process. In our case we use a timeout for
      * the select method and the select method will block for that time unless
      * waken up.
-     * 唤醒标记。因为唤醒方法 {@link Selector#wakeup()} 开销比较大，通过该标识，减少调用。
+     * 唤醒标记。因为唤醒方法 {@link Selector#wakeup()} 开销比较大，通过该标识，减少wakeup()的调用次数。
      */
     private final AtomicBoolean wakenUp = new AtomicBoolean();
     /**
-     * Select 策略
+     * Select 策略:是否需要阻塞select
      */
     private final SelectStrategy selectStrategy;
     /**
-     * 处理 Channel 的就绪的 IO 事件，占处理任务的总时间的比例
+     * 处理 Channel 的就绪的 IO 事件占处理任务的总时间的比例
      * 在 NioEventLoop 中，会三种类型的任务：
      *      1) Channel 的就绪的 IO 事件；
      *      2) 普通任务；
      *      3) 定时任务。
-     * 而 ioRatio 属性，处理 Channel 的就绪的 IO 事件，占处理任务的总时间的比例。
+     * 而 ioRatio 属性，处理 Channel 的就绪的 IO 事件，占处理任务(普通任务和定时任务)的总时间的比例。
      */
     private volatile int ioRatio = 50;
     /**
@@ -191,11 +193,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     /**
      * 此构造方法会被调用
-     * @param parent
-     * @param executor
-     * @param selectorProvider
-     * @param strategy
-     * @param rejectedExecutionHandler
+     * @param parent NioEventLoopGroup，管理NioEventLoop
+     * @param executor  JDK中的任务执行器
+     * @param selectorProvider Selector的提供者
+     * @param strategy  select策略
+     * @param rejectedExecutionHandler  设置拒绝策略
      */
     NioEventLoop(NioEventLoopGroup parent, Executor executor, SelectorProvider selectorProvider,
                  SelectStrategy strategy, RejectedExecutionHandler rejectedExecutionHandler) {
@@ -207,7 +209,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         if (strategy == null) {
             throw new NullPointerException("selectStrategy");
         }
-        // 在Windows环境下为：WindowsselectorProvider
+        // 在Windows环境下为：WindowsSelectorProvider
         provider = selectorProvider;
         //  创建 NIO Selector 对象。
         final SelectorTuple selectorTuple = openSelector();
@@ -243,7 +245,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     /**
-     * 打开一个Selector，在最后会对原生的Selector进行包装为SelectorTuple
+     * 打开一个Selector，在最后会对原生的Selector进行包装为SelectorTuple。
+     * 此处为什么要这么实现呢？
+     * 因为从JDK的SelectorImpl的源码中我们可以发现, 当服务器监听到事件后会封装成SelectionKey放到HashSet中
+     * , 然后程序就可以从这个HashSet中取出事件进行处理. 而HashSet的add方法的时间复杂度是O(n), 为此Netty通过反射机制,
+     * 将底层的这个HashSet用数组替换了, 毕竟向数组中添加数据的时间复杂度是O(1)。
      * @return
      */
     private SelectorTuple openSelector() {
@@ -254,11 +260,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         } catch (IOException e) {
             throw new ChannelException("failed to open a new selector", e);
         }
-
+        // 如果开启优化
         if (DISABLE_KEY_SET_OPTIMIZATION) {
             return new SelectorTuple(unwrappedSelector);
         }
-
+        // 反射获取JDK 原生的SelectorImpl
         Object maybeSelectorImplClass = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -284,15 +290,21 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
 
         final Class<?> selectorImplClass = (Class<?>) maybeSelectorImplClass;
+        // 底层使用数组,性能比JDK原生的SelectorImpl中的hashMap性能高
         final SelectedSelectionKeySet selectedKeySet = new SelectedSelectionKeySet();
 
         Object maybeException = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
                 try {
+                    // 获取JDK 原生的SelectorImpl中的相关属性，具体定义如下：
+                    //    protected Set<SelectionKey> selectedKeys = new HashSet();
+                    //    protected HashSet<SelectionKey> keys = new HashSet();
+                    //    private Set<SelectionKey> publicKeys;
+                    //    private Set<SelectionKey> publicSelectedKeys;
                     Field selectedKeysField = selectorImplClass.getDeclaredField("selectedKeys");
                     Field publicSelectedKeysField = selectorImplClass.getDeclaredField("publicSelectedKeys");
-
+                    // 如果JDK版本大于9
                     if (PlatformDependent.javaVersion() >= 9 && PlatformDependent.hasUnsafe()) {
                         // Let us try to use sun.misc.Unsafe to replace the SelectionKeySet.
                         // This allows us to also do this in Java9+ without any extra flags.
@@ -318,7 +330,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     if (cause != null) {
                         return cause;
                     }
-
+                    // 替换JDK原生的SelectorImpl中的
                     selectedKeysField.set(unwrappedSelector, selectedKeySet);
                     publicSelectedKeysField.set(unwrappedSelector, selectedKeySet);
                     return null;
@@ -436,12 +448,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     /**
      * Replaces the current {@link Selector} of this event loop with newly created {@link Selector}s to work
-     * around the infamous epoll 100% CPU bug.
+     * around the infamous(声名狼藉/恶名昭彰) epoll 100% CPU bug.
      */
     public void rebuildSelector() {
 
         if (!inEventLoop()) {
-            // 不在EvenLoop线程里
+            // 不在EvenLoop线程里,创建一个执行任务
             execute(new Runnable() {
                 @Override
                 public void run() {
@@ -450,7 +462,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             });
             return;
         }
-        // 如果在EventLoop线程里
+        // 如果在EventLoop线程里，直接执行
         rebuildSelector0();
     }
 
@@ -459,6 +471,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         return selector.keys().size() - cancelledKeys;
     }
 
+    /**
+     * 处理"水平触发" 导致selector CPU 100%的问题
+     */
     private void rebuildSelector0() {
         final Selector oldSelector = selector;
         final SelectorTuple newSelectorTuple;
@@ -528,7 +543,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      *   3、处理非IO任务
      * 注意  服务端此监听线程数量通常只有一个，因为正常情况只需要一个线程执行NIO 的Selector监听操作即可。
      *       所以即使有多个线程也是浪费的了。此时，对应一个具体的NioEventLoop线程，在run()方法中实现循环监听。
-     * =》首先看有没有未执行的任务，有的话直接执行，否则就去轮训看是否有就绪的Channel
+     * ======> 首先看有没有未执行的任务，有的话直接执行，否则就去轮训看是否有就绪的Channel
      */
     @Override
     protected void run() {
@@ -538,7 +553,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     //-------------switch方法开始-------------------
                     switch (selectStrategy.calculateStrategy(
                                                             selectNowSupplier,  // selector.selectNow()
-                                                            hasTasks()           //判断任务队列是否有任务可以执行
+                                                            hasTasks()           // 判断任务队列是否有任务可以执行
                     )) {
                         // 默认实现下，不存在这个情况。要么大于0，要么-1
                     case SelectStrategy.CONTINUE:
@@ -619,7 +634,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 } else {
                     final long ioStartTime = System.nanoTime();
                     try {
-                        // 处理 Channel 感兴趣的就绪 IO 事件
+                        // ======> 处理 Channel 感兴趣的就绪 IO 事件
                         processSelectedKeys();
                     } finally {
                         // Ensure we always run tasks.
@@ -766,6 +781,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     private void processSelectedKeysOptimized() {
         // 遍历所有I/O已经就绪的selectkey
         for (int i = 0; i < selectedKeys.size; ++i) {
+            // 从数组中获取SelectionKey，比如原生的SelectorImpl中的Set性能要高！！！
             final SelectionKey k = selectedKeys.keys[i];
             // null out entry in the array to allow to have it GC'ed once the Channel close
             // See https://github.com/netty/netty/issues/2363

@@ -28,8 +28,10 @@ final class DefaultSelectStrategy implements SelectStrategy {
 
     @Override
     public int calculateStrategy(IntSupplier selectSupplier, boolean hasTasks) throws Exception {
-        // 任务队列有任务就返回任务队列的任务,执行selector.selectNow()操作.否则返回-1（SelectStrategy.SELECT）.
-        //
+        // 任务队列有任务就返回任务队列的任务,执行selector.selectNow()操作。
+        // selectorNow()会返回就就绪事件的数量。如果大于0表示已经有IO事件发生，需要执行IO相关操作
+        // 如果等于0表示没有IO事件，可以直接处理Tasks任务。
+        // 否则返回-1（SelectStrategy.SELECT）.
         return hasTasks ? selectSupplier.get() : SelectStrategy.SELECT;
     }
 }

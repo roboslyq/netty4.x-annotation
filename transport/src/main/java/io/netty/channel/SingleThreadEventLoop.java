@@ -56,11 +56,12 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
 
     /**
      * 默认会被子类调用的构造器
-     * @param parent
-     * @param executor
-     * @param addTaskWakesUp
-     * @param maxPendingTasks
-     * @param rejectedExecutionHandler
+     * @param parent EventLoopGroup
+     * @param executor  Executor
+     * @param addTaskWakesUp 是否在添加Task时，唤醒当前线程？因为当前线程可能阻塞在IO监听上，如果添加Task不唤醒，任务不会立即
+     *                       执行，直接有IO事件到达或者超时。
+     * @param maxPendingTasks 最大追加任务数量
+     * @param rejectedExecutionHandler  拒绝策略处理器
      */
     protected SingleThreadEventLoop(EventLoopGroup parent, Executor executor,
                                     boolean addTaskWakesUp, int maxPendingTasks,

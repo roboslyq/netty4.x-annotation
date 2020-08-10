@@ -21,8 +21,15 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+/**
+ * 用来替换JDK底层的 SelectorImpl实现中的两个属性：
+ *     protected Set<SelectionKey> selectedKeys = new HashSet();
+ *     private Set<SelectionKey> publicSelectedKeys;
+ *
+ * 因此默认实现是Hash，此处实现使用数组，add时，性能明显高。
+ */
 final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
-
+    // 这个Set集合底层使用的是数组, 调用add方法时直接向数组中添加元素就可以, 时间复杂度O(1).
     SelectionKey[] keys;
     int size;
 

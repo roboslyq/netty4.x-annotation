@@ -21,6 +21,10 @@ import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Set;
 
+/**
+ * Netty封装的Selector,主要是实现了自己的SelectedSelectionKeySet,里面使用了数组的数据结构,
+ * 性能比JDK原生的SelectorImpl中的Set要高。
+ */
 final class SelectedSelectionKeySetSelector extends Selector {
     private final SelectedSelectionKeySet selectionKeys;
     private final Selector delegate;

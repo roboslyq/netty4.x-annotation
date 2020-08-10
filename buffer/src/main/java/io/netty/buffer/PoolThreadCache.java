@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * technics of
  * <a href="https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919">
  * Scalable memory allocation using jemalloc</a>.
+ * 对应Netty内存池的缓存，与线程绑定。
  */
 final class PoolThreadCache {
 
